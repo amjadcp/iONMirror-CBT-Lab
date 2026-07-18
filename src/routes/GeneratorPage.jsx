@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export default function GeneratorPage() {
-  const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('sessionId');
+  const { sessionId } = useParams();
+  const navigate = useNavigate();
 
   const [examType, setExamType] = useState('AFCAT');
   const [difficulty, setDifficulty] = useState('Medium');
   const [numQuestions, setNumQuestions] = useState('10');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [showProceed, setShowProceed] = useState(false);
 
   // Sample templates to generate questions from
   const generateMockQuestions = (type, diff, count) => {
@@ -19,7 +20,6 @@ export default function GeneratorPage() {
     for (let i = 1; i <= num; i++) {
       const qId = `q_${type.toLowerCase()}_${i}`;
       
-      // Partition questions into section categories
       let section = 'Quantitative Aptitude';
       if (i > num * 0.75) {
         section = 'Technical / Core';
@@ -75,7 +75,6 @@ export default function GeneratorPage() {
           ]
         });
       } else {
-        // Technical / Core section (GATE-style with multiple choice or multiple correct)
         list.push({
           id: qId,
           section,
@@ -124,7 +123,8 @@ export default function GeneratorPage() {
       }
 
       const data = await res.json();
-      setStatus(`Success! Transmitted ${data.received} questions to the exam webhook.`);
+      setStatus(`Success! Transmitted ${data.received} questions to the simulator.`);
+      setShowProceed(true);
     } catch (err) {
       console.error(err);
       setStatus(`Delivery Failed: ${err.message}`);
@@ -133,52 +133,113 @@ export default function GeneratorPage() {
     }
   };
 
+  const handleProceed = () => {
+    navigate(`/session/${sessionId}/login`);
+  };
+
   return (
-    <div className="gen-page">
-      <div className="gen-form">
-        <h3>AI Simulator Configuration</h3>
-        
-        <div className="gen-field">
-          <label>Target Exam</label>
-          <select value={examType} onChange={(e) => setExamType(e.target.value)}>
-            <option value="AFCAT">AFCAT (Indian Air Force)</option>
-            <option value="GATE">GATE (Graduate Aptitude Test)</option>
-            <option value="SSC">SSC CGL (Civil Services)</option>
-            <option value="TA">Territorial Army (TA)</option>
-          </select>
-        </div>
+    <div className="setup-container">
+      <div className="setup-card" style={{ maxWidth: '480px' }}>
+        <h2 className="setup-title" style={{ textAlign: 'center', marginBottom: '20px' }}>
+          Quiz Generator Configuration
+        </h2>
+        <p className="setup-desc" style={{ textAlign: 'center', marginBottom: '20px' }}>
+          Select your test parameters below to generate the questions payload.
+        </p>
 
-        <div className="gen-field">
-          <label>Difficulty Rating</label>
-          <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-            <option value="Easy">Easy (Practice)</option>
-            <option value="Medium">Medium (Balanced)</option>
-            <option value="Hard">Hard (TCS iON Standard)</option>
-          </select>
-        </div>
+        <div className="setup-details">
+          <div className="setup-field-group">
+            <label>Target Exam</label>
+            <select 
+              value={examType} 
+              onChange={(e) => setExamType(e.target.value)}
+              style={{
+                background: '#ffffff',
+                border: '1px solid var(--cbt-border-color)',
+                borderRadius: '4px',
+                padding: '10px',
+                fontSize: '12px',
+                color: 'var(--cbt-text-main)',
+                outline: 'none'
+              }}
+            >
+              <option value="AFCAT">AFCAT (Indian Air Force)</option>
+              <option value="GATE">GATE (Graduate Aptitude Test)</option>
+              <option value="SSC">SSC CGL (Civil Services)</option>
+              <option value="TA">Territorial Army (TA)</option>
+            </select>
+          </div>
 
-        <div className="gen-field">
-          <label>Question Quantity</label>
-          <select value={numQuestions} onChange={(e) => setNumQuestions(e.target.value)}>
-            <option value="5">5 Questions (Rapid-fire)</option>
-            <option value="10">10 Questions (Sectional)</option>
-            <option value="20">20 Questions (Standard)</option>
-            <option value="30">30 Questions (Full Test)</option>
-          </select>
+          <div className="setup-field-group">
+            <label>Difficulty Rating</label>
+            <select 
+              value={difficulty} 
+              onChange={(e) => setDifficulty(e.target.value)}
+              style={{
+                background: '#ffffff',
+                border: '1px solid var(--cbt-border-color)',
+                borderRadius: '4px',
+                padding: '10px',
+                fontSize: '12px',
+                color: 'var(--cbt-text-main)',
+                outline: 'none'
+              }}
+            >
+              <option value="Easy">Easy (Practice)</option>
+              <option value="Medium">Medium (Balanced)</option>
+              <option value="Hard">Hard (TCS iON Standard)</option>
+            </select>
+          </div>
+
+          <div className="setup-field-group">
+            <label>Question Quantity</label>
+            <select 
+              value={numQuestions} 
+              onChange={(e) => setNumQuestions(e.target.value)}
+              style={{
+                background: '#ffffff',
+                border: '1px solid var(--cbt-border-color)',
+                borderRadius: '4px',
+                padding: '10px',
+                fontSize: '12px',
+                color: 'var(--cbt-text-main)',
+                outline: 'none'
+              }}
+            >
+              <option value="5">5 Questions (Rapid-fire)</option>
+              <option value="10">10 Questions (Sectional)</option>
+              <option value="20">20 Questions (Standard)</option>
+              <option value="30">30 Questions (Full Test)</option>
+            </select>
+          </div>
         </div>
 
         <button 
-          className="gen-submit-btn" 
+          className="setup-btn" 
           onClick={handleGenerate} 
           disabled={loading}
+          style={{ marginBottom: '15px' }}
         >
-          {loading ? 'Transmitting...' : 'Generate & POST Questions'}
+          {loading ? 'Transmitting Questions...' : 'Generate & Send Questions'}
         </button>
 
         {status && (
-          <div className={`gen-status ${status.startsWith('Success') ? 'success' : 'error'}`}>
+          <div 
+            className={`gen-status ${status.startsWith('Success') ? 'success' : 'error'}`} 
+            style={{ marginBottom: '15px', padding: '10px', borderRadius: '4px', fontSize: '11px', textAlign: 'center' }}
+          >
             {status}
           </div>
+        )}
+
+        {showProceed && (
+          <button 
+            className="setup-btn" 
+            onClick={handleProceed}
+            style={{ background: '#38a169' }}
+          >
+            Proceed to Candidate Login ▶
+          </button>
         )}
       </div>
     </div>

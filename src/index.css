@@ -1789,3 +1789,302 @@ pre code {
   font-size: 11px;
 }
 
+/* ---------------------------------------------------- */
+/* Relocated Setup Split Layout & Full-Width Exam       */
+/* ---------------------------------------------------- */
+
+.setup-split-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.setup-split-left {
+  width: 35%;
+  min-width: 400px;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--cbt-sidebar-bg);
+  border-right: 1px solid var(--cbt-border-color);
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.setup-split-right {
+  flex: 1;
+  height: 100%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.cbt-exam-full-width-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--cbt-bg-light);
+}
+
+/* ---------------------------------------------------- */
+/* TCS iON Candidate Login Screen Simulation            */
+/* ---------------------------------------------------- */
+
+.login-screen-wrapper {
+  background: #edf2f7;
+  color: var(--cbt-text-main);
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.login-header {
+  background: var(--cbt-steel-blue);
+  color: #fff;
+  height: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 2px solid var(--cbt-steel-blue-dark);
+}
+
+.login-system-name {
+  font-weight: 700;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.login-header-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.login-card-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.login-card {
+  background: #ffffff;
+  border: 1px solid var(--cbt-border-color);
+  border-radius: 6px;
+  max-width: 780px;
+  width: 100%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.login-card-header {
+  background: #e2e8f0;
+  border-bottom: 1px solid var(--cbt-border-color);
+  padding: 10px 16px;
+}
+
+.login-card-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cbt-steel-blue);
+}
+
+.login-card-body {
+  display: flex;
+  padding: 20px;
+  gap: 24px;
+}
+
+/* Left Panel: inputs & keyboard */
+.login-body-left {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid var(--cbt-border-color);
+  padding-right: 24px;
+}
+
+.login-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login-input-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cbt-text-main);
+  text-transform: uppercase;
+}
+
+.login-input-group input {
+  background: #fff;
+  border: 1px solid var(--cbt-border-color);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--cbt-text-main);
+  outline: none;
+}
+
+.login-pwd-wrapper {
+  display: flex;
+  position: relative;
+}
+
+.login-pwd-wrapper input {
+  flex: 1;
+  padding-right: 32px;
+}
+
+.login-kbd-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Virtual Keyboard Grid */
+.login-virtual-keyboard {
+  background: var(--cbt-sidebar-bg);
+  border: 1px solid var(--cbt-border-color);
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-kbd-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cbt-text-muted);
+  text-transform: uppercase;
+  border-bottom: 1px dotted var(--cbt-border-color);
+  padding-bottom: 2px;
+}
+
+.login-kbd-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.login-kbd-key {
+  background: #ffffff;
+  border: 1px solid var(--cbt-border-color);
+  border-radius: 3px;
+  height: 24px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cbt-text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+}
+
+.login-kbd-key:hover {
+  background: #e2e8f0;
+  border-color: var(--cbt-text-muted);
+}
+
+.login-kbd-key.large {
+  grid-column: span 2;
+  font-size: 9px;
+  font-weight: 700;
+  background: #edf2f7;
+}
+
+/* Right Panel: avatar & info */
+.login-body-right {
+  flex: 0.8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  justify-content: center;
+}
+
+.login-avatar-container {
+  width: 90px;
+  height: 90px;
+  border: 1px solid var(--cbt-border-color);
+  background: var(--cbt-sidebar-bg);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-candidate-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.login-candidate-name .label {
+  font-size: 10px;
+  color: var(--cbt-text-muted);
+  text-transform: uppercase;
+}
+
+.login-candidate-name .name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cbt-steel-blue);
+}
+
+.login-instructions {
+  font-size: 11px;
+  color: var(--cbt-text-muted);
+  line-height: 1.5;
+  background: #fffff0;
+  border: 1px solid #f6e05e;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-align: left;
+}
+
+/* Card Footer */
+.login-card-footer {
+  background: #e2e8f0;
+  border-top: 1px solid var(--cbt-border-color);
+  padding: 10px 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-submit-btn {
+  padding: 8px 24px;
+  font-size: 12px;
+}
+
+.login-footer {
+  background: var(--cbt-steel-blue);
+  color: #cbd5e0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-top: 1px solid var(--cbt-steel-blue-dark);
+}
+
+
+

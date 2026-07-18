@@ -9,7 +9,6 @@ import SectionTabs from '../components/layout/SectionTabs';
 import QuestionPalette from '../components/layout/QuestionPalette';
 import FooterControls from '../components/layout/FooterControls';
 import QuestionPane from '../components/question/QuestionPane';
-import EmbeddedConfigPanel from '../components/embedded/EmbeddedConfigPanel';
 import SubmitConfirmModal from '../components/modals/SubmitConfirmModal';
 import SummaryScreen from '../components/modals/SummaryScreen';
 
@@ -62,37 +61,30 @@ function ExamSessionContent() {
   }
 
   return (
-    <div className="cbt-split-layout">
-      {/* Embedded config panel representing AI generator */}
-      <div className="cbt-split-left">
-        <EmbeddedConfigPanel />
-      </div>
-
+    <div className="cbt-exam-full-width-container">
       {/* Main restrictive TCS iON style exam window */}
-      <div className="cbt-split-right">
-        {state.newQuestionsArrived && (
-          <div className="cbt-arrived-alert">
-            <span className="alert-text">
-              🚀 Questions successfully added to your session based on settings!
-            </span>
-            <button className="alert-close" onClick={clearAlert}>×</button>
-          </div>
-        )}
-
-        <div className="cbt-exam-wrapper">
-          <HeaderBar />
-          <SectionTabs />
-          
-          <div className="cbt-exam-body">
-            <QuestionPane />
-            <QuestionPalette 
-              isCollapsed={isPaletteCollapsed} 
-              onToggle={() => setIsPaletteCollapsed(!isPaletteCollapsed)} 
-            />
-          </div>
-
-          <FooterControls onSubmit={() => setIsSubmitModalOpen(true)} />
+      {state.newQuestionsArrived && (
+        <div className="cbt-arrived-alert">
+          <span className="alert-text">
+            🚀 Questions successfully added to your session based on settings!
+          </span>
+          <button className="alert-close" onClick={clearAlert}>×</button>
         </div>
+      )}
+
+      <div className="cbt-exam-wrapper">
+        <HeaderBar />
+        <SectionTabs />
+        
+        <div className="cbt-exam-body">
+          <QuestionPane />
+          <QuestionPalette 
+            isCollapsed={isPaletteCollapsed} 
+            onToggle={() => setIsPaletteCollapsed(!isPaletteCollapsed)} 
+          />
+        </div>
+
+        <FooterControls onSubmit={() => setIsSubmitModalOpen(true)} />
       </div>
 
       <SubmitConfirmModal 

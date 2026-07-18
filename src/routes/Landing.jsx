@@ -21,7 +21,7 @@ export default function Landing() {
 
   const handleStartSession = () => {
     const randomId = 'sess_' + Math.random().toString(36).substring(2, 8);
-    navigate(`/session/${randomId}/setup`);
+    navigate(`/session/${randomId}/generate`);
   };
 
   const scrollToSection = (id) => {
