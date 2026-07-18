@@ -8,14 +8,14 @@ export default function Landing() {
 
   // Trigger welcome modal for first time users using localStorage
   useEffect(() => {
-    const isFirstTime = localStorage.getItem('examrig_first_time') === null;
+    const isFirstTime = localStorage.getItem('ionmirror_first_time') === null;
     if (isFirstTime) {
       setShowWelcome(true);
     }
   }, []);
 
   const closeWelcome = () => {
-    localStorage.setItem('examrig_first_time', 'false');
+    localStorage.setItem('ionmirror_first_time', 'false');
     setShowWelcome(false);
   };
 
@@ -36,7 +36,7 @@ export default function Landing() {
       {/* 1. Hero / Header Section */}
       <section className="hero-section">
         <div className="hero-left">
-          <h1 className="hero-headline">ExamRig — Realistic TCS iON‑Style CBT Practice</h1>
+          <h1 className="hero-headline">iON Mirror — Realistic TCS iON‑Style CBT Practice</h1>
           <p className="hero-subhead">
             Practice Indian competitive MCQ exams (AFCAT, TA, SSC, GATE) in a true‑to‑life exam environment that reproduces the restrictive UI students face so you build familiarity under pressure.
           </p>
@@ -52,7 +52,7 @@ export default function Landing() {
         <div className="hero-right">
           <img 
             src="/hero_illustration.png" 
-            alt="ExamRig CBT Laptop Simulator Mockup" 
+            alt="iON Mirror CBT Laptop Simulator Mockup" 
             className="hero-img"
           />
         </div>
@@ -79,10 +79,10 @@ export default function Landing() {
 
         {/* What this tool is */}
         <section className="landing-section" id="what-is-tool">
-          <h2>What is ExamRig?</h2>
+          <h2>What is iON Mirror?</h2>
           <div className="landing-section-body">
             <p>
-              ExamRig is a practice environment that intentionally recreates the look and feel of common CBT exam clients used in India. It’s not an official exam provider — it’s a simulator designed to train you to handle the exact UI friction and behaviours you’ll encounter in real tests, including limited scrolling, block‑based question navigation, and strict save/submit flows.
+              iON Mirror is a practice environment that intentionally recreates the look and feel of common CBT exam clients used in India. It’s not an official exam provider — it’s a simulator designed to train you to handle the exact UI friction and behaviours you’ll encounter in real tests, including limited scrolling, block‑based question navigation, and strict save/submit flows.
             </p>
           </div>
         </section>
@@ -169,7 +169,7 @@ export default function Landing() {
           <div className="layout-grid">
             <div className="layout-item">
               <strong>Header</strong>
-              <span>Shows exam name, candidate label and countdown timer.</span>
+              <span>Shows candidate label and countdown timer.</span>
             </div>
             <div className="layout-item">
               <strong>Section tabs</strong>
@@ -203,12 +203,6 @@ export default function Landing() {
           <button className="cbt-btn cbt-btn-primary" onClick={handleStartSession}>
             Start Practice Session
           </button>
-          
-          <div className="footer-links-group">
-            <a className="footer-link" onClick={() => setShowNotes(true)}>
-              Read the FRD / Design Notes
-            </a>
-          </div>
         </footer>
 
       </div>
@@ -217,7 +211,7 @@ export default function Landing() {
       {showWelcome && (
         <div className="welcome-modal-overlay">
           <div className="welcome-modal-card">
-            <h3>Welcome to ExamRig</h3>
+            <h3>Welcome to iON Mirror</h3>
             <p>
               This simulator recreates restrictive CBT software behavior so you can practice under the same conditions. Start a session and configure the embedded AI panel to generate questions for your chosen exam. Good luck!
             </p>
@@ -232,9 +226,9 @@ export default function Landing() {
       {showNotes && (
         <div className="welcome-modal-overlay" onClick={() => setShowNotes(false)}>
           <div className="welcome-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <h3>ExamRig Design Notes</h3>
+            <h3>iON Mirror Design Notes</h3>
             <p>
-              ExamRig implements Indian Computer-Based Test (CBT) requirements under strict UX limitations:
+              iON Mirror implements Indian Computer-Based Test (CBT) requirements under strict UX limitations:
             </p>
             <p style={{ fontSize: '11px', color: '#64748b', marginTop: '-8px' }}>
               - Mouse-wheel scroll is disabled in the main question body to mimic actual testing clients.<br />

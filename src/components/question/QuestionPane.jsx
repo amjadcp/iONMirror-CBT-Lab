@@ -57,16 +57,6 @@ export default function QuestionPane() {
     });
   };
 
-  const scrollToTop = () => {
-    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
-  };
-
-  const scrollToBottom = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  };
-
   // Handles click to enlarge on rendered SVGs (Mermaid charts or inline SVGs)
   const handlePaneClick = (e) => {
     const svgEl = e.target.closest('.mermaid-block svg') || e.target.closest('svg');
@@ -93,11 +83,6 @@ export default function QuestionPane() {
         </div>
       </div>
 
-      <div className="cbt-question-scroll-controls">
-        <button onClick={scrollToTop} className="cbt-scroll-btn top" title="Scroll to Top">▲ Top</button>
-        <button onClick={scrollToBottom} className="cbt-scroll-btn bottom" title="Scroll to Bottom">▼ Bottom</button>
-      </div>
-
       <div className="cbt-question-content-container" ref={scrollContainerRef}>
         <div className="cbt-question-stem">
           <MarkdownRenderer content={activeQ.stemMarkdown} />
@@ -109,9 +94,8 @@ export default function QuestionPane() {
             const inputId = `opt_${activeQId}_${opt.id}`;
 
             return (
-              <label 
+              <div 
                 key={opt.id} 
-                htmlFor={inputId} 
                 className={`cbt-option-wrapper ${isSelected ? 'cbt-option-selected' : ''}`}
               >
                 <div className="cbt-option-input-container">
@@ -122,12 +106,11 @@ export default function QuestionPane() {
                     checked={isSelected}
                     onChange={() => handleOptionChange(opt.id)}
                   />
-                  <span className="cbt-option-letter">{opt.id.toUpperCase()}.</span>
                 </div>
                 <div className="cbt-option-text">
                   <MarkdownRenderer content={opt.markdown} />
                 </div>
-              </label>
+              </div>
             );
           })}
         </div>

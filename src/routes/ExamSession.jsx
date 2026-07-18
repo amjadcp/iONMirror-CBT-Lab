@@ -81,6 +81,7 @@ function ExamSessionContent() {
           <QuestionPalette 
             isCollapsed={isPaletteCollapsed} 
             onToggle={() => setIsPaletteCollapsed(!isPaletteCollapsed)} 
+            onSubmit={() => setIsSubmitModalOpen(true)}
           />
         </div>
 

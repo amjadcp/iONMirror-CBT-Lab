@@ -29,53 +29,26 @@ export default function FooterControls({ onSubmit }) {
 
   return (
     <footer className="cbt-footer">
-      <div className="cbt-legend">
-        <div className="cbt-legend-item">
-          <span className="cbt-legend-tile cbt-tile-answered">0</span>
-          <span>Answered</span>
-        </div>
-        <div className="cbt-legend-item">
-          <span className="cbt-legend-tile cbt-tile-not-answered">0</span>
-          <span>Not Answered</span>
-        </div>
-        <div className="cbt-legend-item">
-          <span className="cbt-legend-tile cbt-tile-not-visited">0</span>
-          <span>Not Visited</span>
-        </div>
-        <div className="cbt-legend-item">
-          <span className="cbt-legend-tile cbt-tile-marked">0</span>
-          <span>Marked for Review</span>
-        </div>
-        <div className="cbt-legend-item">
-          <span className="cbt-legend-tile cbt-tile-answered-marked">
-            0<span className="cbt-tile-dot"></span>
-          </span>
-          <span style={{ fontSize: '10px' }}>Answered & Marked for Review</span>
-        </div>
-      </div>
-
       <div className="cbt-footer-actions">
         <div className="cbt-footer-left-btns">
-          <button className="cbt-btn cbt-btn-secondary" onClick={handleClear}>
-            Clear Response
-          </button>
-          <button className="cbt-btn cbt-btn-purple" onClick={handleMarkReviewNext}>
+          <button className="cbt-btn cbt-btn-secondary footer-btn-white" onClick={handleMarkReviewNext}>
             Mark for Review & Next
+          </button>
+          <button className="cbt-btn cbt-btn-secondary footer-btn-white" onClick={handleClear}>
+            Clear Response
           </button>
         </div>
         <div className="cbt-footer-right-btns">
           <button 
-            className="cbt-btn cbt-btn-secondary" 
+            className="cbt-btn cbt-btn-secondary footer-btn-white" 
             onClick={handlePrevious}
             disabled={isFirstQuestion}
+            style={{ marginRight: '10px' }}
           >
-            ◀ Back
+            Previous
           </button>
-          <button className="cbt-btn cbt-btn-primary" onClick={handleSaveNext}>
-            Save & Next ▶
-          </button>
-          <button className="cbt-btn cbt-btn-submit" onClick={onSubmit}>
-            Submit
+          <button className="cbt-btn cbt-btn-primary footer-btn-blue" onClick={handleSaveNext}>
+            Save & Next
           </button>
         </div>
       </div>
