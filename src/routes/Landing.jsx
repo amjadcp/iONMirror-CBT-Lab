@@ -38,7 +38,7 @@ export default function Landing() {
         <div className="hero-left">
           <h1 className="hero-headline">iON Mirror — Realistic TCS iON‑Style CBT Practice</h1>
           <p className="hero-subhead">
-            Practice Indian competitive MCQ exams (AFCAT, TA, SSC, GATE) in a true‑to‑life exam environment that reproduces the restrictive UI students face so you build familiarity under pressure.
+            Practice Indian competitive CBT exams (AFCAT, TA, SSC, GATE, RRB, RPF, etc) in a true‑to‑life exam environment that reproduces the restrictive UI students face so you build familiarity under pressure.
           </p>
           <div className="hero-ctas">
             <button className="cbt-btn cbt-btn-primary landing-btn" style={{ maxWidth: '240px' }} onClick={handleStartSession}>
@@ -69,7 +69,7 @@ export default function Landing() {
           </div>
           <div className="highlight-box">
             <h4>Live Question Delivery</h4>
-            <p>The embedded AI sends questions directly to your session — no extra uploads required.</p>
+            <p>The AI Generator website sends your customized questions directly to your session via webhook.</p>
           </div>
           <div className="highlight-box">
             <h4>Image‑first Options</h4>
@@ -115,17 +115,17 @@ export default function Landing() {
             <div className="step-card">
               <div className="step-num">1</div>
               <h3>Start a session</h3>
-              <p>Click “Start a Practice Session” to open a unique practice session page. You’ll see the exam interface and a configuration panel beside it.</p>
+              <p>Click “Start a Practice Session” to initialize a secure session, which will redirect you to the AI Generator Console to create your mock test.</p>
             </div>
             <div className="step-card">
               <div className="step-num">2</div>
-              <h3>Configure questions via embedded AI</h3>
-              <p>Use the embedded AI generator to select exam type, sections, difficulty and number of questions; it automatically sends the generated questions to your session.</p>
+              <h3>Generate Exam Questions</h3>
+              <p>Configure your mock exam (sections, difficulty, questions count) on the AI Generator Console. Once generated, it automatically webhooks questions to your session.</p>
             </div>
             <div className="step-card">
               <div className="step-num">3</div>
-              <h3>Practice inside simulated exam</h3>
-              <p>Answer questions using the on‑screen controls (Save & Next, Mark for Review). The UI intentionally mimics restrictions like disabled mouse‑wheel scrolling and fixed 10‑question blocks so you learn to manage them.</p>
+              <h3>Simulated Practice Console</h3>
+              <p>Set your exam duration at candidate login. Practice under realistic restrictions: no tab/window switching, page refreshes, or mouse-wheel scrolling. Any violations trigger a warning and subsequent submission.</p>
             </div>
           </div>
         </section>
@@ -144,7 +144,7 @@ export default function Landing() {
               <tbody>
                 <tr>
                   <td className="sec-name">Waiting for questions</td>
-                  <td>“No questions yet — configure the AI generator panel to create your exam.”</td>
+                  <td>“Redirecting to the AI Generator Console to create your exam.”</td>
                 </tr>
                 <tr>
                   <td className="sec-name">Questions received</td>
@@ -213,7 +213,7 @@ export default function Landing() {
           <div className="welcome-modal-card">
             <h3>Welcome to iON Mirror</h3>
             <p>
-              This simulator recreates restrictive CBT software behavior so you can practice under the same conditions. Start a session and configure the embedded AI panel to generate questions for your chosen exam. Good luck!
+              This simulator recreates restrictive CBT software behavior so you can practice under the same conditions. Start a session and use the external AI Generator Console to generate questions for your chosen exam. Good luck!
             </p>
             <button className="cbt-btn cbt-btn-primary" onClick={closeWelcome}>
               Got It / Proceed
