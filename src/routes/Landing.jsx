@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent } from '../utils/analytics';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function Landing() {
 
   const handleStartSession = () => {
     const randomId = 'sess_' + Math.random().toString(36).substring(2, 8);
+    trackEvent('start_session', 'engagement', 'hero_cta');
     navigate(`/session/${randomId}/generate`);
   };
 

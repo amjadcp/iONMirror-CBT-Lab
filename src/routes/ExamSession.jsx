@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ExamStateProvider, useExamState } from '../context/ExamStateContext';
 import { useSessionPolling } from '../hooks/useSessionPolling';
 import { useExamTimer } from '../hooks/useExamTimer';
+import { trackEvent } from '../utils/analytics';
 
 import HeaderBar from '../components/layout/HeaderBar';
 import SectionTabs from '../components/layout/SectionTabs';
@@ -54,6 +55,7 @@ function ExamSessionContent() {
 
     if (isExamActive && !isTerminated) {
       const currentWarnings = parseInt(sessionStorage.getItem(`ion_warning_count_${sessionId}`) || '0', 10);
+      trackEvent('security_warning', 'violation', 'page refresh');
       if (currentWarnings === 0) {
         sessionStorage.setItem(`ion_warning_count_${sessionId}`, '1');
         setWarnings(1);
@@ -62,6 +64,7 @@ function ExamSessionContent() {
           reason: 'page refresh'
         });
       } else {
+        trackEvent('security_termination', 'violation', sessionId);
         sessionStorage.setItem(`ion_exam_terminated_${sessionId}`, 'true');
       }
     }
@@ -97,6 +100,7 @@ function ExamSessionContent() {
       sessionStorage.setItem(`ion_last_warning_trigger_${sessionId}`, now.toString());
 
       const currentWarnings = parseInt(sessionStorage.getItem(`ion_warning_count_${sessionId}`) || '0', 10);
+      trackEvent('security_warning', 'violation', reason === 'tab' ? 'tab switching' : 'window switching');
       if (currentWarnings === 0) {
         sessionStorage.setItem(`ion_warning_count_${sessionId}`, '1');
         setWarnings(1);
@@ -105,6 +109,7 @@ function ExamSessionContent() {
           reason: reason === 'tab' ? 'tab switching' : 'window switching'
         });
       } else {
+        trackEvent('security_termination', 'violation', sessionId);
         sessionStorage.setItem(`ion_exam_terminated_${sessionId}`, 'true');
         dispatch({ type: 'SUBMIT_EXAM' });
       }
@@ -142,6 +147,7 @@ function ExamSessionContent() {
         if (!state.timer.isRunning && !state.timer.isExpired && !state.submission.submitted) {
           dispatch({ type: 'START_TIMER' });
           if (!sessionStorage.getItem(`ion_exam_active_${sessionId}`)) {
+            trackEvent('questions_loaded', 'exam', sessionId, Object.keys(state.questionsById).length);
             sessionStorage.setItem(`ion_exam_active_${sessionId}`, 'true');
             sessionStorage.setItem(`ion_warning_count_${sessionId}`, '0');
           }
@@ -152,10 +158,12 @@ function ExamSessionContent() {
 
   const handleConfirmSubmit = () => {
     setIsSubmitModalOpen(false);
+    trackEvent('exam_submitted', 'exam', 'user_confirmed');
     dispatch({ type: 'SUBMIT_EXAM' });
   };
 
   const handleRestart = () => {
+    trackEvent('restart_session', 'engagement', sessionId);
     sessionStorage.removeItem(`ion_exam_active_${sessionId}`);
     sessionStorage.removeItem(`ion_warning_count_${sessionId}`);
     sessionStorage.removeItem(`ion_exam_terminated_${sessionId}`);
