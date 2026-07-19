@@ -7,6 +7,7 @@ export default function CandidateLogin() {
   
   const [candidateId, setCandidateId] = useState('');
   const [password, setPassword] = useState('••••••••');
+  const [examTime, setExamTime] = useState(10);
 
   // Generate a random candidate ID on mount
   useEffect(() => {
@@ -16,7 +17,7 @@ export default function CandidateLogin() {
 
   const handleSignIn = (e) => {
     e.preventDefault();
-    navigate(`/session/${sessionId}`);
+    navigate(`/session/${sessionId}?time=${examTime}`);
   };
 
   // Virtual keyboard layout keys
@@ -68,6 +69,18 @@ export default function CandidateLogin() {
                   />
                   <span className="login-kbd-icon" title="Virtual Keyboard Active">⌨️</span>
                 </div>
+              </div>
+
+              <div className="login-input-group">
+                <label htmlFor="examTime">Exam Duration (Minutes)</label>
+                <input 
+                  type="number" 
+                  id="examTime" 
+                  value={examTime} 
+                  onChange={(e) => setExamTime(Math.max(1, parseInt(e.target.value) || ''))}
+                  min="1"
+                  required
+                />
               </div>
 
               {/* Mock Virtual Keyboard */}

@@ -8,10 +8,28 @@ export default function SummaryScreen({ onRestart }) {
   if (!summary) return null;
 
   const notAttempted = summary.total - summary.answered - summary.marked - summary.answeredMarked;
+  const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${state.sessionId}`) === 'true';
 
   return (
     <div className="cbt-summary-container">
       <div className="cbt-summary-card">
+        {isTerminated && (
+          <div className="cbt-termination-alert" style={{
+            background: '#fff5f5',
+            border: '1px solid #fed7d7',
+            borderRadius: '6px',
+            padding: '16px',
+            color: '#c53030',
+            fontSize: '14px',
+            lineHeight: '1.6',
+            marginBottom: '20px',
+            textAlign: 'center',
+            fontWeight: 'bold'
+          }}>
+            ⚠️ Exam Terminated: Security violation detected (tab/window switching or page refresh).
+          </div>
+        )}
+
         <div className="cbt-summary-header">
           <h2>Exam Practice Session Complete</h2>
           <p className="cbt-summary-subtitle">TCS iON CBT Environment Practice Summary</p>
