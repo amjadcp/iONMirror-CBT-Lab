@@ -4,6 +4,7 @@ import { ExamStateProvider, useExamState } from '../context/ExamStateContext';
 import { useSessionPolling } from '../hooks/useSessionPolling';
 import { useExamTimer } from '../hooks/useExamTimer';
 import { trackEvent } from '../utils/analytics';
+import { setPersistentSessionId } from '../utils/session';
 
 import HeaderBar from '../components/layout/HeaderBar';
 import SectionTabs from '../components/layout/SectionTabs';
@@ -27,8 +28,11 @@ function ExamSessionContent() {
   const [warningModal, setWarningModal] = useState({ isOpen: false, reason: '' });
   const [warnings, setWarnings] = useState(0);
 
-  // Initialize session state on mount or change
+  // Initialize session state on mount or change & sync persistent session ID
   useEffect(() => {
+    if (sessionId) {
+      setPersistentSessionId(sessionId);
+    }
     if (state.sessionId !== sessionId) {
       dispatch({
         type: 'INIT_SESSION',

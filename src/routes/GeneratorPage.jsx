@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ExamStateProvider, useExamState } from '../context/ExamStateContext';
+import { setPersistentSessionId } from '../utils/session';
 
 function GeneratorPageContent() {
   const { sessionId } = useParams();
@@ -10,6 +11,13 @@ function GeneratorPageContent() {
   const [checking, setChecking] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Sync session ID with browser storage
+  useEffect(() => {
+    if (sessionId) {
+      setPersistentSessionId(sessionId);
+    }
+  }, [sessionId]);
 
   const webhookUrl = `${window.location.origin}/api/webhook/${sessionId}`;
   const loginUrl = `${window.location.origin}/session/${sessionId}/login`;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { setPersistentSessionId } from '../utils/session';
 
 export default function CandidateLogin() {
   const { sessionId } = useParams();
@@ -8,6 +9,13 @@ export default function CandidateLogin() {
   const [candidateId, setCandidateId] = useState('');
   const [password, setPassword] = useState('••••••••');
   const [examTime, setExamTime] = useState(10);
+
+  // Sync persistent session ID in browser storage
+  useEffect(() => {
+    if (sessionId) {
+      setPersistentSessionId(sessionId);
+    }
+  }, [sessionId]);
 
   // Generate a random candidate ID on mount
   useEffect(() => {

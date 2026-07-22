@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../utils/analytics';
+import { getOrCreateSessionId } from '../utils/session';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -21,9 +22,9 @@ export default function Landing() {
   };
 
   const handleStartSession = () => {
-    const randomId = 'sess_' + Math.random().toString(36).substring(2, 8);
+    const sessionId = getOrCreateSessionId();
     trackEvent('start_session', 'engagement', 'hero_cta');
-    navigate(`/session/${randomId}/generate`);
+    navigate(`/session/${sessionId}/generate`);
   };
 
   const feedbackUrl = import.meta.env.VITE_FEEDBACK_FORM_URL || "https://forms.gle/placeholder";
