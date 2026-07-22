@@ -26,11 +26,10 @@ export default function Landing() {
     navigate(`/session/${randomId}/generate`);
   };
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+  const feedbackUrl = import.meta.env.VITE_FEEDBACK_FORM_URL || "https://forms.gle/placeholder";
+
+  const handleFeedbackClick = () => {
+    trackEvent('click_feedback_form', 'engagement', 'hero_cta');
   };
 
   return (
@@ -38,6 +37,15 @@ export default function Landing() {
       {/* 1. Hero / Header Section */}
       <section className="hero-section">
         <div className="hero-left">
+          <div className="feedback-alert-badge">
+            <span className="badge-tag">Feedback</span>
+            <span className="badge-text">
+              We're looking for feedback! Help us improve the simulator.
+              <a href={feedbackUrl} target="_blank" rel="noopener noreferrer" onClick={handleFeedbackClick}>
+                Share thoughts →
+              </a>
+            </span>
+          </div>
           <h1 className="hero-headline">iON Mirror — Realistic TCS iON‑Style CBT Practice</h1>
           <p className="hero-subhead">
             Practice Indian competitive CBT exams (AFCAT, TA, SSC, GATE, RRB, RPF, etc) in a true‑to‑life exam environment that reproduces the restrictive UI students face so you build familiarity under pressure.
@@ -46,8 +54,14 @@ export default function Landing() {
             <button className="cbt-btn cbt-btn-primary landing-btn" style={{ maxWidth: '240px' }} onClick={handleStartSession}>
               Start a Practice Session
             </button>
-            <a className="hero-secondary-link" onClick={() => scrollToSection('how-it-helps')}>
-              See How It Works
+            <a 
+              href={feedbackUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hero-secondary-link" 
+              onClick={handleFeedbackClick}
+            >
+              Share Feedback
             </a>
           </div>
         </div>

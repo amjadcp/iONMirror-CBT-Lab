@@ -1480,6 +1480,49 @@ pre code {
   text-align: left;
 }
 
+/* Feedback alert badge */
+.feedback-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--cbt-sidebar-bg);
+  border: 1px solid var(--cbt-border-color);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--cbt-text-main);
+  align-self: flex-start;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.feedback-alert-badge .badge-tag {
+  background-color: var(--cbt-timer-green, #10b981);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.feedback-alert-badge .badge-text {
+  font-weight: 500;
+}
+
+.feedback-alert-badge .badge-text a {
+  color: var(--cbt-steel-blue);
+  text-decoration: underline;
+  font-weight: 600;
+  margin-left: 5px;
+  transition: color 0.15s ease;
+}
+
+.feedback-alert-badge .badge-text a:hover {
+  color: var(--cbt-steel-blue-dark);
+}
+
 .hero-headline {
   font-size: 34px;
   font-weight: 800;
