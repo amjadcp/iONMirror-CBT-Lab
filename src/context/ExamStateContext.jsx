@@ -34,16 +34,64 @@ const getPrevQuestionId = (state, currentSection, activeQuestionId) => {
 
 function examReducer(state, action) {
   switch (action.type) {
-    case 'INIT_SESSION':
-      return {
+    case 'INIT_SESSION': {
+      const { sessionId, durationSeconds } = action.payload;
+      const clientQuestionsRaw = sessionStorage.getItem(`ion_client_questions_${sessionId}`);
+      let questions = [];
+      if (clientQuestionsRaw) {
+        try {
+          questions = JSON.parse(clientQuestionsRaw);
+        } catch (e) {
+          console.error('Error parsing client questions in INIT_SESSION:', e);
+        }
+      }
+
+      const baseState = {
         ...initialState,
-        sessionId: action.payload.sessionId,
+        sessionId: sessionId,
         timer: {
-          remainingSeconds: action.payload.durationSeconds || 1800,
+          remainingSeconds: durationSeconds || 1800,
           isExpired: false,
           isRunning: false
         }
       };
+
+      if (!Array.isArray(questions) || questions.length === 0) {
+        return baseState;
+      }
+
+      const newSections = {};
+      const newQuestionsById = {};
+
+      questions.forEach((q) => {
+        newQuestionsById[q.id] = {
+          ...q,
+          status: 'not_visited',
+          selected: [],
+        };
+
+        if (!newSections[q.section]) {
+          newSections[q.section] = { questionIds: [] };
+        }
+        newSections[q.section].questionIds.push(q.id);
+      });
+
+      const sectionNames = Object.keys(newSections);
+      let firstSection = sectionNames[0] || '';
+      let firstQuestion = '';
+      if (firstSection && newSections[firstSection].questionIds.length > 0) {
+        firstQuestion = newSections[firstSection].questionIds[0];
+        newQuestionsById[firstQuestion] = transition(newQuestionsById[firstQuestion], { type: 'VISIT' });
+      }
+
+      return {
+        ...baseState,
+        sections: newSections,
+        questionsById: newQuestionsById,
+        currentSection: firstSection,
+        activeQuestionId: firstQuestion,
+      };
+    }
 
     case 'START_TIMER':
       return {

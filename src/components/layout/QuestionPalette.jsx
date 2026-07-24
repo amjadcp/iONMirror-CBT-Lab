@@ -1,9 +1,25 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useExamState } from '../../context/ExamStateContext';
 
 export default function QuestionPalette({ isCollapsed, onToggle, onSubmit }) {
   const { state, dispatch } = useExamState();
+  const paletteSidebarRef = useRef(null);
   const qIds = state.sections[state.currentSection]?.questionIds || [];
+
+  // Restrict mouse wheel / trackpad scroll inside Question Palette. Allow scroll ONLY through scrollbar.
+  useEffect(() => {
+    const sidebarEl = paletteSidebarRef.current;
+    if (!sidebarEl) return;
+
+    const preventWheelScroll = (e) => {
+      e.preventDefault();
+    };
+
+    sidebarEl.addEventListener('wheel', preventWheelScroll, { passive: false });
+    return () => {
+      sidebarEl.removeEventListener('wheel', preventWheelScroll);
+    };
+  }, [isCollapsed]);
 
   const handleTileClick = (qId) => {
     dispatch({
@@ -107,7 +123,7 @@ export default function QuestionPalette({ isCollapsed, onToggle, onSubmit }) {
   });
 
   return (
-    <aside className={`cbt-palette-sidebar ${isCollapsed ? 'cbt-palette-collapsed' : ''}`}>
+    <aside className={`cbt-palette-sidebar ${isCollapsed ? 'cbt-palette-collapsed' : ''}`} ref={paletteSidebarRef}>
       <button 
         className="cbt-palette-toggle-btn" 
         onClick={onToggle}

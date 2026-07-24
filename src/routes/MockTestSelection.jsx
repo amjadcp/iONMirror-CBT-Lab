@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MOCK_TESTS } from '../data/mockTests';
 import { trackEvent } from '../utils/analytics';
 import { parseQuestionsFromRaw } from '../utils/questionParser';
+import { fetchGitHubMockTests } from '../utils/githubService';
 
 export default function MockTestSelection() {
   const navigate = useNavigate();
+  const [githubTests, setGithubTests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Initialize showAiPopup based on localStorage persistence
   const [showAiPopup, setShowAiPopup] = useState(() => {
     return localStorage.getItem('ionmirror_ai_popup_dismissed') !== 'true';
   });
+
+  useEffect(() => {
+    async function loadRepoTests() {
+      setLoading(true);
+      const tests = await fetchGitHubMockTests();
+      setGithubTests(tests);
+      setLoading(false);
+    }
+    loadRepoTests();
+  }, []);
 
   const handleClosePopup = () => {
     setShowAiPopup(false);
@@ -32,18 +45,40 @@ export default function MockTestSelection() {
     return sessionId;
   };
 
-  const handleSelectMockTest = (test) => {
+  const handleSelectMockTest = async (test) => {
     const sessionId = getSessionId();
-    trackEvent('select_mock_test', 'engagement', test.id);
+    trackEvent('select_mock_test', 'engagement', test.id || test.title);
+
+    // Clear previous exam state flags for this session ID
+    sessionStorage.removeItem(`ion_exam_active_${sessionId}`);
+    sessionStorage.removeItem(`ion_warning_count_${sessionId}`);
+    sessionStorage.removeItem(`ion_exam_terminated_${sessionId}`);
+    sessionStorage.removeItem(`ion_last_warning_trigger_${sessionId}`);
+
+    let rawQuestionsInput = test.questions;
+
+    // If test is fetched from GitHub repository, fetch raw markdown content live in browser
+    if (test.downloadUrl) {
+      try {
+        const res = await fetch(test.downloadUrl);
+        if (res.ok) {
+          rawQuestionsInput = await res.text();
+        }
+      } catch (err) {
+        console.error('Error fetching raw markdown from GitHub:', err);
+      }
+    }
 
     // Parse questions using standard common parser purely in the browser
-    const { questions: parsedQuestions } = parseQuestionsFromRaw(test.questions);
+    const { questions: parsedQuestions, metadata } = parseQuestionsFromRaw(rawQuestionsInput);
+
+    const durationMins = (metadata && metadata.durationMins) || test.durationMins || 10;
 
     // Store in browser sessionStorage (No Netlify Blob API call!)
     sessionStorage.setItem(`ion_client_questions_${sessionId}`, JSON.stringify(parsedQuestions));
 
     // Navigate to candidate login with selected test duration
-    navigate(`/session/${sessionId}/login?time=${test.durationMins}`);
+    navigate(`/session/${sessionId}/login?time=${durationMins}`);
   };
 
   const handleGenerateWithAI = () => {
@@ -51,6 +86,9 @@ export default function MockTestSelection() {
     trackEvent('start_ai_generator', 'engagement', 'mock_selection_popup');
     navigate(`/session/${sessionId}/generate`);
   };
+
+  // Display ONLY GitHub repo test files if available; fallback to MOCK_TESTS if empty
+  const displayTests = githubTests.length > 0 ? githubTests : MOCK_TESTS;
 
   return (
     <div className="mock-selection-wrapper">
@@ -69,25 +107,30 @@ export default function MockTestSelection() {
 
       {/* Main Catalog Section */}
       <main className="mock-selection-container">
-        
-        {/* Mock Tests Hyperlink Bulleted List */}
-        <ul className="mock-links-list">
-          {MOCK_TESTS.map(test => (
-            <li className="mock-link-bullet-item" key={test.id}>
-              <a 
-                href="#"
-                className="mock-link-anchor"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSelectMockTest(test);
-                }}
-              >
-                {test.title} | {test.questionsCount} Questions | {test.durationMins} mins.
-              </a>
-            </li>
-          ))}
-        </ul>
-
+        {loading ? (
+          <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--cbt-steel-blue)' }}>
+            <div className="cbt-loading-spinner" style={{ margin: '0 auto 15px' }}></div>
+            <p>Fetching practice test papers from GitHub repository...</p>
+          </div>
+        ) : (
+          /* Mock Tests Hyperlink Bulleted List */
+          <ul className="mock-links-list">
+            {displayTests.map(test => (
+              <li className="mock-link-bullet-item" key={test.id || test.fileName || test.title}>
+                <a 
+                  href="#"
+                  className="mock-link-anchor"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSelectMockTest(test);
+                  }}
+                >
+                  {test.fileName || `${test.title} | ${test.questionsCount} Questions | ${test.durationMins} mins.`}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </main>
 
       {/* Floating Bottom-Right AI Question Generator Overlay Popup */}

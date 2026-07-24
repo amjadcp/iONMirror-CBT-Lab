@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { setPersistentSessionId } from '../utils/session';
 
 export default function CandidateLogin() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const timeQuery = searchParams.get('time');
   
   const [candidateId, setCandidateId] = useState('');
   const [password, setPassword] = useState('••••••••');
-  const [examTime, setExamTime] = useState(10);
+  const [examTime, setExamTime] = useState(timeQuery ? parseInt(timeQuery, 10) : 10);
+
+  useEffect(() => {
+    if (timeQuery) {
+      setExamTime(parseInt(timeQuery, 10));
+    }
+  }, [timeQuery]);
 
   // Sync persistent session ID in browser storage
   useEffect(() => {

@@ -33,13 +33,11 @@ function ExamSessionContent() {
     if (sessionId) {
       setPersistentSessionId(sessionId);
     }
-    if (state.sessionId !== sessionId) {
-      dispatch({
-        type: 'INIT_SESSION',
-        payload: { sessionId, durationSeconds }
-      });
-    }
-  }, [sessionId, state.sessionId, dispatch, durationSeconds]);
+    dispatch({
+      type: 'INIT_SESSION',
+      payload: { sessionId, durationSeconds }
+    });
+  }, [sessionId, dispatch, durationSeconds]);
 
   // Bind session polling and timer hooks
   useSessionPolling(sessionId, state.submission.submitted, dispatch);

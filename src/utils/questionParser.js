@@ -103,23 +103,20 @@ function parseMarkdownText(text) {
     const trimmed = line.trim();
     if (!trimmed) return;
 
-    // Check for title metadata line: # AFCAT 2026... | 10 Questions | 10 mins
+    // Check for title metadata line: # AFCAT 2026... | 10 Questions | 10 mins or FILENAME:...
     if (trimmed.startsWith('# ')) {
       const headerText = trimmed.replace(/^#\s+/, '');
       metadata = parseMockTestFilename(headerText);
       return;
     }
 
-    // Check for section header: ### Section: General Awareness or ## Section Name
-    if (trimmed.startsWith('##')) {
-      const secText = trimmed.replace(/^#+\s*/, '').replace(/^Section:\s*/i, '').trim();
-      if (secText) {
-        currentSection = secText;
-      }
+    if (trimmed.toLowerCase().startsWith('filename:')) {
+      const fnText = trimmed.replace(/^filename:\s*/i, '');
+      metadata = parseMockTestFilename(fnText);
       return;
     }
 
-    // Check for new Question header: #### Q1. or Q1) or 1.
+    // Check for new Question header FIRST: #### Q1. or Q1) or 1.
     const qHeaderMatch = trimmed.match(/^(?:####\s*)?(?:Q\d+[\.\)]|\d+[\.\)])\s*(.+)/i);
     if (qHeaderMatch) {
       if (currentQuestion && currentQuestion.options.length >= 2) {
@@ -138,6 +135,15 @@ function parseMarkdownText(text) {
         marks: 3,
         negativeMarks: 1
       };
+      return;
+    }
+
+    // Check for section header: ### Section: General Awareness or ## Section Name
+    if (trimmed.startsWith('##')) {
+      const secText = trimmed.replace(/^#+\s*/, '').replace(/^Section:\s*/i, '').trim();
+      if (secText) {
+        currentSection = secText;
+      }
       return;
     }
 

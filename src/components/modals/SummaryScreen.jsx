@@ -93,7 +93,8 @@ export default function SummaryScreen({ onRestart }) {
           </table>
         </div>
 
-        {hasAnswersOrExplanations && (
+        {/* Set to true to enable post-exam solution & explanation view */}
+        {false /* ENABLE_SOLUTIONS_VIEW */ && hasAnswersOrExplanations && (
           <div style={{ marginTop: '25px', textAlign: 'left' }}>
             <button 
               className="cbt-btn cbt-btn-secondary" 
