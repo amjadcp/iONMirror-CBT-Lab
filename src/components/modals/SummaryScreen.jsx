@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useExamState } from '../../context/ExamStateContext';
 
 export default function SummaryScreen({ onRestart }) {
   const { state } = useExamState();
   const { summary } = state.submission;
+  const [showSolutions, setShowSolutions] = useState(false);
 
   if (!summary) return null;
 
   const notAttempted = summary.total - summary.answered - summary.marked - summary.answeredMarked;
   const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${state.sessionId}`) === 'true';
+
+  const questionsList = Object.values(state.questionsById);
+  const hasAnswersOrExplanations = questionsList.some(q => q.correctAnswer || q.explanation);
 
   return (
     <div className="cbt-summary-container">
@@ -89,9 +93,49 @@ export default function SummaryScreen({ onRestart }) {
           </table>
         </div>
 
-        <div className="cbt-summary-notice">
+        {hasAnswersOrExplanations && (
+          <div style={{ marginTop: '25px', textAlign: 'left' }}>
+            <button 
+              className="cbt-btn cbt-btn-secondary" 
+              onClick={() => setShowSolutions(!showSolutions)}
+              style={{ width: '100%', marginBottom: '15px' }}
+            >
+              {showSolutions ? '▲ Hide Solutions & Explanations' : '▼ View Solutions & Explanations'}
+            </button>
+
+            {showSolutions && (
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ color: '#2b6cb0', marginBottom: '15px' }}>Solutions & Answer Keys</h4>
+                {questionsList.map((q, idx) => {
+                  const selectedOptId = q.selected && q.selected[0];
+                  const matchedCorrect = q.options.find(o => o.id === q.correctAnswer || o.key === q.correctAnswer);
+
+                  return (
+                    <div key={q.id} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '12px 16px', marginBottom: '12px' }}>
+                      <strong style={{ color: '#2d3748' }}>Q{idx + 1}. {q.stemMarkdown}</strong>
+                      <div style={{ marginTop: '8px', fontSize: '12.5px' }}>
+                        {matchedCorrect && (
+                          <div style={{ color: '#276749', fontWeight: '600' }}>
+                            ✓ Correct Answer: ({matchedCorrect.key}) {matchedCorrect.markdown}
+                          </div>
+                        )}
+                        {q.explanation && (
+                          <div style={{ marginTop: '4px', color: '#4a5568', fontStyle: 'italic', background: '#ebf8ff', padding: '8px', borderRadius: '4px' }}>
+                            <strong>Explanation:</strong> {q.explanation}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="cbt-summary-notice" style={{ marginTop: '20px' }}>
           <p>
-            <strong>Note on Evaluation:</strong> Correct and incorrect answers are not evaluated. In a real exam, "Answered" and "Answered & Marked for Review" questions are evaluated, while "Marked for Review" questions are ignored.
+            <strong>Note on Evaluation:</strong> TCS iON CBT Environment Practice Session Completed.
           </p>
         </div>
 

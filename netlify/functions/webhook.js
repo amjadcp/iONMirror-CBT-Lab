@@ -1,5 +1,6 @@
 import { getSessionStore } from './_lib/blobStore.js';
 import { validateQuestionPayload } from './_lib/schema.js';
+import { parseQuestionsFromRaw } from '../../src/utils/questionParser.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,8 +19,15 @@ export default async (req, context) => {
   }
 
   try {
-    const body = await req.json().catch(() => null);
-    const { valid, errors, data } = validateQuestionPayload(body);
+    const bodyText = await req.text().catch(() => null);
+    let parsedBody = null;
+    try {
+      parsedBody = JSON.parse(bodyText);
+    } catch {
+      parsedBody = bodyText; // Raw markdown text payload
+    }
+
+    const { valid, errors, data } = validateQuestionPayload(parsedBody);
     if (!valid) {
       return new Response(JSON.stringify({ errors }), {
         status: 400,
@@ -27,11 +35,13 @@ export default async (req, context) => {
       });
     }
 
+    const { questions: parsedQuestions } = parseQuestionsFromRaw(data);
+
     const store = getSessionStore();
     const existing = (await store.get(sessionId)) || { sessionId, questions: [], updatedAt: null };
 
     const now = Date.now();
-    const stampedQuestions = data.questions.map(q => ({
+    const stampedQuestions = parsedQuestions.map(q => ({
       ...q,
       receivedAt: now
     }));
@@ -44,7 +54,7 @@ export default async (req, context) => {
       metadata: { expiresAt: Date.now() + 3 * 60 * 60 * 1000 },
     });
 
-    return new Response(JSON.stringify({ received: stampedQuestions.length }), {
+    return new Response(JSON.stringify({ received: stampedQuestions.length, questions: stampedQuestions }), {
       status: 202,
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });

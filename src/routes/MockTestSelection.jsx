@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MOCK_TESTS } from '../data/mockTests';
 import { trackEvent } from '../utils/analytics';
+import { parseQuestionsFromRaw } from '../utils/questionParser';
 
 export default function MockTestSelection() {
   const navigate = useNavigate();
@@ -31,23 +32,15 @@ export default function MockTestSelection() {
     return sessionId;
   };
 
-  const handleSelectMockTest = async (test) => {
+  const handleSelectMockTest = (test) => {
     const sessionId = getSessionId();
     trackEvent('select_mock_test', 'engagement', test.id);
 
-    try {
-      // Send mock test questions to session webhook endpoint
-      await fetch(`/api/webhook/${sessionId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questions: test.questions,
-          examType: test.title
-        })
-      });
-    } catch (e) {
-      console.warn('Webhook dispatch failed, continuing to candidate login:', e);
-    }
+    // Parse questions using standard common parser purely in the browser
+    const { questions: parsedQuestions } = parseQuestionsFromRaw(test.questions);
+
+    // Store in browser sessionStorage (No Netlify Blob API call!)
+    sessionStorage.setItem(`ion_client_questions_${sessionId}`, JSON.stringify(parsedQuestions));
 
     // Navigate to candidate login with selected test duration
     navigate(`/session/${sessionId}/login?time=${test.durationMins}`);

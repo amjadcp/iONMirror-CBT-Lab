@@ -6,6 +6,23 @@ export function useSessionPolling(sessionId, submitted, dispatch) {
   useEffect(() => {
     if (!sessionId || submitted) return;
 
+    // Check if questions were loaded directly in browser (from GitHub / catalog)
+    const clientQuestionsRaw = sessionStorage.getItem(`ion_client_questions_${sessionId}`);
+    if (clientQuestionsRaw) {
+      try {
+        const clientQuestions = JSON.parse(clientQuestionsRaw);
+        if (Array.isArray(clientQuestions) && clientQuestions.length > 0) {
+          dispatch({
+            type: 'MERGE_QUESTIONS',
+            payload: { questions: clientQuestions }
+          });
+          return; // Fully handled in browser! No Netlify Blob polling needed.
+        }
+      } catch (e) {
+        console.error('Error parsing client-side questions:', e);
+      }
+    }
+
     let active = true;
     let timerId = null;
 
