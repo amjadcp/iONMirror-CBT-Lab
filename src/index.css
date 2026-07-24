@@ -2605,3 +2605,230 @@ pre code {
 .footer-btn-blue:hover {
   background: #2b6cb0 !important;
 }
+
+/* ---------------------------------------------------- */
+/* Mock Test Selection Catalog Styles                   */
+/* ---------------------------------------------------- */
+.mock-selection-wrapper {
+  height: 100vh;
+  width: 100vw;
+  overflow-y: auto;
+  background-color: var(--cbt-bg-light);
+  color: var(--cbt-text-main);
+}
+
+.mock-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--cbt-border-color);
+  padding: 30px 24px;
+}
+
+.mock-header-content {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: var(--cbt-steel-blue);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  padding: 0;
+  display: inline-block;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.mock-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--cbt-steel-blue);
+  margin-bottom: 6px;
+}
+
+.mock-header-desc {
+  color: var(--cbt-text-muted);
+  font-size: 13.5px;
+}
+
+.mock-selection-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 24px 60px;
+}
+
+.mock-category-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.cat-tab {
+  background: #ffffff;
+  border: 1px solid var(--cbt-border-color);
+  border-radius: 9999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cbt-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cat-tab:hover {
+  background: var(--cbt-sidebar-bg);
+  color: var(--cbt-steel-blue);
+}
+
+.cat-tab.active {
+  background: var(--cbt-steel-blue);
+  color: #ffffff;
+  border-color: var(--cbt-steel-blue);
+}
+
+/* Hyperlinked Bulleted Mock Test List View */
+.mock-links-list {
+  list-style-type: disc;
+  padding-left: 24px;
+  margin: 0 0 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mock-link-bullet-item {
+  color: #2b6cb0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.mock-link-anchor {
+  color: #2b6cb0;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.mock-link-anchor:hover {
+  color: #1a365d;
+  text-decoration: underline;
+}
+
+/* Floating Bottom-Right AI Question Generator Overlay Popup */
+.ai-floating-popup {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid var(--cbt-border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: slideUpPopup 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpPopup {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ai-popup-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.ai-popup-close-btn:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+.ai-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ai-popup-icon {
+  font-size: 18px;
+}
+
+.ai-popup-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cbt-steel-blue);
+}
+
+.ai-popup-desc {
+  font-size: 12.5px;
+  color: var(--cbt-text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.ai-popup-btn {
+  width: 100%;
+  padding: 9px 16px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+}
+
+/* Floating Circle Trigger Button */
+.ai-circle-trigger-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--cbt-steel-blue);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  animation: slideUpPopup 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-circle-trigger-btn:hover {
+  transform: scale(1.1);
+  background: var(--cbt-steel-blue-dark);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+
+

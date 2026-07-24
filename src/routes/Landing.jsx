@@ -22,9 +22,8 @@ export default function Landing() {
   };
 
   const handleStartSession = () => {
-    const sessionId = getOrCreateSessionId();
     trackEvent('start_session', 'engagement', 'hero_cta');
-    navigate(`/session/${sessionId}/generate`);
+    navigate('/mock-tests');
   };
 
   const feedbackUrl = import.meta.env.VITE_FEEDBACK_FORM_URL || "https://forms.gle/placeholder";

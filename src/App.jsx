@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Landing from './routes/Landing';
+import MockTestSelection from './routes/MockTestSelection';
 import GeneratorPage from './routes/GeneratorPage';
 import CandidateLogin from './routes/CandidateLogin';
 import ExamSession from './routes/ExamSession';
@@ -26,6 +27,7 @@ export default function App() {
       <AnalyticsTracker />
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/mock-tests" element={<MockTestSelection />} />
         <Route path="/session/:sessionId/generate" element={<GeneratorPage />} />
         <Route path="/session/:sessionId/login" element={<CandidateLogin />} />
         <Route path="/session/:sessionId" element={<ExamSession />} />
