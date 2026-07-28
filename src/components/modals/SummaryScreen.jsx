@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useExamState } from '../../context/ExamStateContext';
+import { trackEvent } from '../../utils/analytics';
 
 export default function SummaryScreen({ onRestart }) {
   const { state } = useExamState();
   const { summary } = state.submission;
-  const [showSolutions, setShowSolutions] = useState(false);
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (!summary) return null;
 
@@ -12,7 +16,77 @@ export default function SummaryScreen({ onRestart }) {
   const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${state.sessionId}`) === 'true';
 
   const questionsList = Object.values(state.questionsById);
-  const hasAnswersOrExplanations = questionsList.some(q => q.correctAnswer || q.explanation);
+
+  let correctCount = 0;
+  let wrongCount = 0;
+  let totalScore = 0;
+  let maxPossibleScore = 0;
+  let hasScoringData = false;
+
+  const sectionStats = {};
+
+  questionsList.forEach(q => {
+    const secName = q.section || state.currentSection || 'General';
+    if (!sectionStats[secName]) {
+      sectionStats[secName] = {
+        total: 0,
+        answered: 0,
+        correct: 0,
+        wrong: 0,
+        notAttempted: 0,
+        marked: 0,
+        answeredMarked: 0,
+        score: 0
+      };
+    }
+
+    const stats = sectionStats[secName];
+    stats.total += 1;
+
+    const qMarks = Number(q.marks) || 3;
+    maxPossibleScore += qMarks;
+
+    const selectedOptId = q.selected && q.selected[0];
+
+    if (q.status === 'answered') stats.answered += 1;
+    else if (q.status === 'marked') stats.marked += 1;
+    else if (q.status === 'answered_marked') stats.answeredMarked += 1;
+    else stats.notAttempted += 1;
+
+    if (selectedOptId && q.correctAnswer) {
+      hasScoringData = true;
+      const isCorrect = selectedOptId.toString().toLowerCase() === q.correctAnswer.toString().toLowerCase();
+      if (isCorrect) {
+        correctCount += 1;
+        totalScore += qMarks;
+        stats.correct += 1;
+        stats.score += qMarks;
+      } else {
+        wrongCount += 1;
+        totalScore -= 1; // standard 1 negative mark
+        stats.wrong += 1;
+        stats.score -= 1;
+      }
+    }
+  });
+
+  const handleOpenReportModal = () => {
+    setIsReportModalOpen(true);
+    setIsSubmitted(false);
+  };
+
+  const handleCloseReportModal = () => {
+    setIsReportModalOpen(false);
+    setIsSubmitted(false);
+  };
+
+  const handleSubmitEmail = (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    trackEvent('request_report_email', 'engagement', email);
+    setIsSubmitted(true);
+  };
 
   return (
     <div className="cbt-summary-container">
@@ -37,6 +111,52 @@ export default function SummaryScreen({ onRestart }) {
         <div className="cbt-summary-header">
           <h2>Exam Practice Session Complete</h2>
           <p className="cbt-summary-subtitle">TCS iON CBT Environment Practice Summary</p>
+        </div>
+
+        {/* Score & Wrong Attempts Performance Banner */}
+        <div className="cbt-score-summary-bar" style={{
+          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+          color: '#ffffff',
+          borderRadius: '8px',
+          padding: '18px 24px',
+          marginBottom: '22px',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          boxShadow: '0 4px 14px rgba(15, 23, 42, 0.15)'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: '4px' }}>
+              Final Score
+            </div>
+            <div style={{ fontSize: '26px', fontWeight: 'bold', color: totalScore >= 0 ? '#4ade80' : '#f87171' }}>
+              {hasScoringData ? `${totalScore} / ${maxPossibleScore}` : 'Evaluation Pending'}
+            </div>
+          </div>
+
+          <div style={{ width: '1px', height: '36px', background: '#334155' }} />
+
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: '4px' }}>
+              Correct Answers
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4ade80' }}>
+              {hasScoringData ? correctCount : '—'}
+            </div>
+          </div>
+
+          <div style={{ width: '1px', height: '36px', background: '#334155' }} />
+
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: '4px' }}>
+              Wrong Attempts
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f87171' }}>
+              {hasScoringData ? wrongCount : '—'}
+            </div>
+          </div>
         </div>
 
         <div className="cbt-summary-stats-grid">
@@ -93,59 +213,103 @@ export default function SummaryScreen({ onRestart }) {
           </table>
         </div>
 
-        {/* Set to true to enable post-exam solution & explanation view */}
-        {false /* ENABLE_SOLUTIONS_VIEW */ && hasAnswersOrExplanations && (
-          <div style={{ marginTop: '25px', textAlign: 'left' }}>
-            <button 
-              className="cbt-btn cbt-btn-secondary" 
-              onClick={() => setShowSolutions(!showSolutions)}
-              style={{ width: '100%', marginBottom: '15px' }}
-            >
-              {showSolutions ? '▲ Hide Solutions & Explanations' : '▼ View Solutions & Explanations'}
-            </button>
-
-            {showSolutions && (
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ color: '#2b6cb0', marginBottom: '15px' }}>Solutions & Answer Keys</h4>
-                {questionsList.map((q, idx) => {
-                  const selectedOptId = q.selected && q.selected[0];
-                  const matchedCorrect = q.options.find(o => o.id === q.correctAnswer || o.key === q.correctAnswer);
-
-                  return (
-                    <div key={q.id} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '12px 16px', marginBottom: '12px' }}>
-                      <strong style={{ color: '#2d3748' }}>Q{idx + 1}. {q.stemMarkdown}</strong>
-                      <div style={{ marginTop: '8px', fontSize: '12.5px' }}>
-                        {matchedCorrect && (
-                          <div style={{ color: '#276749', fontWeight: '600' }}>
-                            ✓ Correct Answer: ({matchedCorrect.key}) {matchedCorrect.markdown}
-                          </div>
-                        )}
-                        {q.explanation && (
-                          <div style={{ marginTop: '4px', color: '#4a5568', fontStyle: 'italic', background: '#ebf8ff', padding: '8px', borderRadius: '4px' }}>
-                            <strong>Explanation:</strong> {q.explanation}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="cbt-summary-notice" style={{ marginTop: '20px' }}>
-          <p>
-            <strong>Note on Evaluation:</strong> TCS iON CBT Environment Practice Session Completed.
+        <div className="cbt-summary-notice" style={{
+          marginTop: '24px',
+          marginBottom: '20px',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+          border: '1px solid #bfdbfe',
+          borderRadius: '8px',
+          padding: '16px 20px',
+          textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.08)'
+        }}>
+          <p style={{ margin: 0, fontSize: '15px', color: '#1e40af', fontWeight: '700' }}>
+            📊 Get Your Detailed Section-wise Performance Report & Complete Answer Key!
+          </p>
+          <p style={{ margin: '6px 0 0 0', fontSize: '13.5px', color: '#1d4ed8', lineHeight: '1.5' }}>
+            Download your in-depth score analysis, accuracy metrics, and step-by-step question solutions delivered directly to your email.
           </p>
         </div>
 
-        <div className="cbt-summary-actions">
+        <div className="cbt-summary-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="cbt-btn cbt-btn-secondary" onClick={handleOpenReportModal} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            📥 Download Report & Answer Key
+          </button>
           <button className="cbt-btn cbt-btn-primary" onClick={onRestart}>
             Start Another Practice Session
           </button>
         </div>
       </div>
+
+      {/* Email Collection Popup Modal */}
+      {isReportModalOpen && (
+        <div className="cbt-modal-overlay" style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)' }}>
+          <div className="cbt-modal-container" style={{ maxWidth: '480px', width: '90%', padding: '24px' }}>
+            <div className="cbt-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>📥 Download Report & Answer Key</h3>
+              <button 
+                onClick={handleCloseReportModal}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="cbt-modal-body">
+              {!isSubmitted ? (
+                <form onSubmit={handleSubmitEmail}>
+                  <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '16px' }}>
+                    Enter your email address below. Your detailed performance report and complete answer key with explanations will be shared via email.
+                  </p>
+                  
+                  <div style={{ marginBottom: '20px' }}>
+                    <label htmlFor="reportEmail" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+                      Email Address
+                    </label>
+                    <input
+                      id="reportEmail"
+                      type="email"
+                      required
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '14px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                    <button type="button" className="cbt-btn cbt-btn-secondary" onClick={handleCloseReportModal}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="cbt-btn cbt-btn-primary">
+                      Send Report via Email →
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                  <div style={{ fontSize: '36px', marginBottom: '10px' }}>✅</div>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#15803d', fontSize: '16px' }}>Report Dispatched!</h4>
+                  <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '20px' }}>
+                    Your performance report & detailed answer key have been scheduled for dispatch to <strong>{email}</strong>. Please check your inbox shortly.
+                  </p>
+                  <button className="cbt-btn cbt-btn-primary" onClick={handleCloseReportModal} style={{ width: '100%' }}>
+                    Close Window
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
