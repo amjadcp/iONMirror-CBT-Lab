@@ -18,11 +18,99 @@ function formatTimeSpent(seconds) {
 }
 
 /**
- * Cleans Markdown tags from text for clean plain text PDF rendering
+ * Formats LaTeX mathematical expressions into clean, human-readable plain text math
+ */
+function formatLaTeXToReadableMath(text) {
+  if (!text) return '';
+
+  let formatted = text;
+
+  // 1. Convert fractions: \dfrac{num}{den} or \frac{num}{den}
+  let prev;
+  do {
+    prev = formatted;
+    formatted = formatted.replace(/\\d?frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (match, num, den) => {
+      const cleanNum = num.trim();
+      const cleanDen = den.trim();
+      return `(${cleanNum} / ${cleanDen})`;
+    });
+  } while (formatted !== prev);
+
+  // 2. Convert square roots: \sqrt{x} or \sqrt[n]{x}
+  formatted = formatted.replace(/\\sqrt\s*\[(.*?)\]\s*\{([^{}]+)\}/g, '$1√($2)');
+  formatted = formatted.replace(/\\sqrt\s*\{([^{}]+)\}/g, '√($1)');
+
+  // 3. Convert text wrappers: \text{...}, \mathrm{...}, \mathbf{...}, \mathit{...}
+  formatted = formatted.replace(/\\(text|mathrm|mathbf|mathit|mb)\s*\{([^{}]+)\}/g, '$2');
+
+  // 4. Convert common LaTeX symbols to Unicode math symbols
+  const latexSymbolMap = {
+    '\\\\times': ' × ',
+    '\\\\cdot': ' · ',
+    '\\\\ast': ' * ',
+    '\\\\div': ' ÷ ',
+    '\\\\pm': ' ± ',
+    '\\\\mp': ' ∓ ',
+    '\\\\leq?': ' ≤ ',
+    '\\\\geq?': ' ≥ ',
+    '\\\\neq': ' ≠ ',
+    '\\\\approx': ' ≈ ',
+    '\\\\equiv': ' ≡ ',
+    '\\\\infty': ' ∞ ',
+    '\\\\degree': '°',
+    '\\\\circ': '°',
+    '\\\\alpha': 'α',
+    '\\\\beta': 'β',
+    '\\\\gamma': 'γ',
+    '\\\\delta': 'δ',
+    '\\\\theta': 'θ',
+    '\\\\pi': 'π',
+    '\\\\sigma': 'σ',
+    '\\\\omega': 'ω',
+    '\\\\lambda': 'λ',
+    '\\\\mu': 'μ',
+    '\\\\Delta': 'Δ',
+    '\\\\Sigma': 'Σ',
+    '\\\\Omega': 'Ω',
+    '\\\\quad': ' ',
+    '\\\\qquad': '  ',
+    '\\\\,': ' ',
+    '\\\\;': ' ',
+    '\\\\!': ''
+  };
+
+  Object.entries(latexSymbolMap).forEach(([pattern, val]) => {
+    formatted = formatted.replace(new RegExp(pattern, 'g'), val);
+  });
+
+  // 5. Convert exponents & subscripts
+  const superscripts = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾', 'n': 'ⁿ' };
+  const subscripts = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉', '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎' };
+
+  formatted = formatted.replace(/\^\{([^{}]+)\}/g, (match, p1) => p1.split('').map(char => superscripts[char] || char).join(''));
+  formatted = formatted.replace(/\^([0-9n])/g, (match, p1) => superscripts[p1] || `^${p1}`);
+
+  formatted = formatted.replace(/_\{([^{}]+)\}/g, (match, p1) => p1.split('').map(char => subscripts[char] || char).join(''));
+  formatted = formatted.replace(/_([0-9])/g, (match, p1) => subscripts[p1] || `_${p1}`);
+
+  // 6. Strip enclosing LaTeX delimiters ($, $$, \(, \))
+  formatted = formatted
+    .replace(/\$\$/g, '')
+    .replace(/\$/g, '')
+    .replace(/\\\(|\\\)/g, '')
+    .replace(/\\\[|\\\]/g, '');
+
+  return formatted;
+}
+
+/**
+ * Cleans Markdown tags and converts LaTeX math formulas into readable text for PDF rendering
  */
 function stripMarkdown(mdText) {
   if (!mdText) return '';
-  return mdText
+  const withReadableMath = formatLaTeXToReadableMath(mdText);
+
+  return withReadableMath
     .replace(/!\[.*?\]\(.*?\)/g, '[Figure/Diagram]')
     .replace(/\[(.*?)\]\(.*?\)/g, '$1')
     .replace(/`{1,3}.*?`{1,3}/gs, '')
@@ -54,7 +142,41 @@ function extractImageUrls(text) {
 }
 
 /**
- * Loads an image URL and converts it to a Data URL (base64) for PDF embedding
+ * Resizes and compresses image data URI using an offscreen canvas to keep PDF size under 5MB while preserving quality
+ */
+function compressImageToDataUrl(imgElement, maxDimension = 800, quality = 0.80) {
+  try {
+    const canvas = document.createElement('canvas');
+    let width = imgElement.width || imgElement.naturalWidth || 800;
+    let height = imgElement.height || imgElement.naturalHeight || 600;
+
+    if (width > maxDimension || height > maxDimension) {
+      if (width > height) {
+        height = Math.round((height * maxDimension) / width);
+        width = maxDimension;
+      } else {
+        width = Math.round((width * maxDimension) / height);
+        height = maxDimension;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(imgElement, 0, 0, width, height);
+
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch (err) {
+    console.error('Error compressing image canvas:', err);
+    return null;
+  }
+}
+
+/**
+ * Loads an image URL, compresses it, and converts it to a Data URL for optimized PDF embedding
  */
 async function loadImageAsDataUrl(url) {
   try {
@@ -64,28 +186,40 @@ async function loadImageAsDataUrl(url) {
       targetUrl = `https://raw.githubusercontent.com/amjadcp/iONMirror-Mocks/main/${cleanPath}`;
     }
 
-    if (targetUrl.startsWith('data:image')) {
-      return targetUrl;
-    }
-
-    const res = await fetch(targetUrl);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const compressedUri = compressImageToDataUrl(img, 800, 0.80);
+        resolve(compressedUri);
+      };
+      img.onerror = () => {
+        // Fallback to raw fetch if crossOrigin image fails
+        fetch(targetUrl)
+          .then(res => (res.ok ? res.blob() : null))
+          .then(blob => {
+            if (!blob) return resolve(null);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const fallbackImg = new Image();
+              fallbackImg.onload = () => resolve(compressImageToDataUrl(fallbackImg, 800, 0.80));
+              fallbackImg.onerror = () => resolve(reader.result);
+              fallbackImg.src = reader.result;
+            };
+            reader.readAsDataURL(blob);
+          })
+          .catch(() => resolve(null));
+      };
+      img.src = targetUrl;
     });
   } catch (err) {
-    console.error('Failed to load image for PDF:', url, err);
+    console.error('Failed to load & compress image for PDF:', url, err);
     return null;
   }
 }
 
 /**
- * Generates a comprehensive multi-page PDF evaluation report
+ * Generates a comprehensive multi-page PDF evaluation report (Optimized under 5MB)
  * Page 1: Detailed Overall Metrics & Section-wise Detailed Attempt & Time Breakdown
  * Pages 2+: Detailed Question-by-Question Evaluation, Options, Explanations, Images/Diagrams, and Time Taken
  */
@@ -93,7 +227,8 @@ export async function generatePDFReport({ state, candidateEmail }) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4'
+    format: 'a4',
+    compress: true // Enables stream compression to optimize PDF file size
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -101,7 +236,7 @@ export async function generatePDFReport({ state, candidateEmail }) {
   const questionsList = Object.values(state.questionsById || {});
   const summary = state.submission?.summary || {};
 
-  // Pre-fetch all images across questions, options, and explanations
+  // Pre-fetch all images across questions, options, and explanations with parallel compression
   const imageCache = {};
   const imageFetchPromises = [];
 
@@ -124,7 +259,7 @@ export async function generatePDFReport({ state, candidateEmail }) {
     });
   });
 
-  // Await all image pre-fetches
+  // Await all compressed image pre-fetches
   await Promise.all(imageFetchPromises);
 
   // Score & Attempts calculation
@@ -346,13 +481,13 @@ export async function generatePDFReport({ state, candidateEmail }) {
   doc.setFontSize(12);
   doc.text('3. Detailed Question-by-Question Evaluation & Explanations', 14, 13);
 
-  // Map question data and attach cached base64 image data
+  // Map question data and attach cached compressed base64 image data
   const questionTableRows = questionsList.map((q, idx) => {
     const qNum = `Q${idx + 1}`;
     const cleanStem = stripMarkdown(q.stemMarkdown);
     const selectedOptId = q.selected && q.selected[0];
     
-    // Find pre-loaded images
+    // Find pre-loaded compressed image
     const stemImageUrls = extractImageUrls(q.stemMarkdown);
     const stemBase64 = stemImageUrls.length > 0 ? imageCache[stemImageUrls[0]] : null;
     
@@ -365,7 +500,7 @@ export async function generatePDFReport({ state, candidateEmail }) {
       
       let badge = '';
       if (isSelected && isCorrect) badge = ' [Selected & Correct]';
-      else if (isSelected) badge = ' [User Selected]';
+      else if (isSelected) badge = ' [Selected]';
       else if (isCorrect) badge = ' [Correct Answer]';
 
       return `(${optKey}) ${optClean}${badge}`;
@@ -427,7 +562,7 @@ export async function generatePDFReport({ state, candidateEmail }) {
       }
     },
     didDrawCell: function(data) {
-      // Draw pre-loaded diagram images inside the Question Stem column if present
+      // Draw compressed JPEG diagram images inside the Question Stem column if present
       if (data.section === 'body' && data.column.index === 1) {
         const rowData = questionTableRows[data.row.index];
         if (rowData && rowData.stemBase64) {
@@ -437,9 +572,9 @@ export async function generatePDFReport({ state, candidateEmail }) {
             const imgWidth = Math.min(48, data.cell.width - 4);
             const imgHeight = 24;
 
-            doc.addImage(rowData.stemBase64, 'PNG', imgX, imgY, imgWidth, imgHeight);
+            doc.addImage(rowData.stemBase64, 'JPEG', imgX, imgY, imgWidth, imgHeight, undefined, 'FAST');
           } catch (e) {
-            console.error('Error rendering image in PDF table cell:', e);
+            console.error('Error rendering compressed image in PDF table cell:', e);
           }
         }
       }
