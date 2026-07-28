@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useExamState } from '../../context/ExamStateContext';
 import { trackEvent } from '../../utils/analytics';
+import { generatePDFReport } from '../../utils/pdfReportGenerator';
 
 export default function SummaryScreen({ onRestart }) {
   const { state } = useExamState();
@@ -8,7 +9,9 @@ export default function SummaryScreen({ onRestart }) {
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [downloadBlobUrl, setDownloadBlobUrl] = useState(null);
 
   if (!summary) return null;
 
@@ -70,7 +73,25 @@ export default function SummaryScreen({ onRestart }) {
     }
   });
 
-  const handleOpenReportModal = () => {
+  const handleOpenReportModal = async () => {
+    const isDev = import.meta.env.DEV || import.meta.env.VITE_ENV === 'dev';
+    if (isDev) {
+      // In DEV environment: generate & download PDF file directly in browser
+      try {
+        const { pdfBlob } = await generatePDFReport({ state, candidateEmail: 'dev-mode@local.test' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(pdfBlob);
+        link.download = `TCS_iON_CBT_Report_${state.sessionId || 'DEV'}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error('Error generating PDF in DEV environment:', err);
+      }
+      return;
+    }
+
+    // In PROD environment: open email popup modal
     setIsReportModalOpen(true);
     setIsSubmitted(false);
   };
@@ -80,12 +101,36 @@ export default function SummaryScreen({ onRestart }) {
     setIsSubmitted(false);
   };
 
-  const handleSubmitEmail = (e) => {
+  const handleSubmitEmail = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
 
-    trackEvent('request_report_email', 'engagement', email);
-    setIsSubmitted(true);
+    setIsGenerating(true);
+    trackEvent('request_report_email', 'engagement', email.trim());
+
+    try {
+      // 1. Generate multi-page PDF on frontend
+      const { pdfBase64, pdfBlob } = generatePDFReport({ state, candidateEmail: email.trim() });
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setDownloadBlobUrl(blobUrl);
+
+      // 2. Transmit to Netlify serverless function sendReport.js
+      await fetch('/.netlify/functions/sendReport', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          sessionId: state.sessionId,
+          pdfBase64,
+          summary: state.submission?.summary
+        })
+      });
+    } catch (err) {
+      console.error('Error generating or transmitting PDF report:', err);
+    } finally {
+      setIsGenerating(false);
+      setIsSubmitted(true);
+    }
   };
 
   return (
@@ -241,10 +286,10 @@ export default function SummaryScreen({ onRestart }) {
         </div>
       </div>
 
-      {/* Email Collection Popup Modal */}
+      {/* Email Collection & PDF Report Popup Modal */}
       {isReportModalOpen && (
         <div className="cbt-modal-overlay" style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)' }}>
-          <div className="cbt-modal-container" style={{ maxWidth: '480px', width: '90%', padding: '24px' }}>
+          <div className="cbt-modal-container" style={{ maxWidth: '500px', width: '90%', padding: '24px' }}>
             <div className="cbt-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>📥 Download Report & Answer Key</h3>
               <button 
@@ -259,7 +304,7 @@ export default function SummaryScreen({ onRestart }) {
               {!isSubmitted ? (
                 <form onSubmit={handleSubmitEmail}>
                   <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '16px' }}>
-                    Enter your email address below. Your detailed performance report and complete answer key with explanations will be shared via email.
+                    Enter your email address below. Your detailed multi-page performance report, section-wise analysis, exact time spent per question, and complete answer key with explanations will be emailed to you.
                   </p>
                   
                   <div style={{ marginBottom: '20px' }}>
@@ -270,6 +315,7 @@ export default function SummaryScreen({ onRestart }) {
                       id="reportEmail"
                       type="email"
                       required
+                      disabled={isGenerating}
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -286,24 +332,37 @@ export default function SummaryScreen({ onRestart }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                    <button type="button" className="cbt-btn cbt-btn-secondary" onClick={handleCloseReportModal}>
+                    <button type="button" className="cbt-btn cbt-btn-secondary" onClick={handleCloseReportModal} disabled={isGenerating}>
                       Cancel
                     </button>
-                    <button type="submit" className="cbt-btn cbt-btn-primary">
-                      Send Report via Email →
+                    <button type="submit" className="cbt-btn cbt-btn-primary" disabled={isGenerating}>
+                      {isGenerating ? 'Generating PDF Report...' : 'Send Report via Email →'}
                     </button>
                   </div>
                 </form>
               ) : (
                 <div style={{ textAlign: 'center', padding: '12px 0' }}>
                   <div style={{ fontSize: '36px', marginBottom: '10px' }}>✅</div>
-                  <h4 style={{ margin: '0 0 8px 0', color: '#15803d', fontSize: '16px' }}>Report Dispatched!</h4>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#15803d', fontSize: '16px' }}>Report Generated & Dispatched!</h4>
                   <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '20px' }}>
-                    Your performance report & detailed answer key have been scheduled for dispatch to <strong>{email}</strong>. Please check your inbox shortly.
+                    Your detailed evaluation report and complete answer key have been dispatched to <strong>{email}</strong>.
                   </p>
-                  <button className="cbt-btn cbt-btn-primary" onClick={handleCloseReportModal} style={{ width: '100%' }}>
-                    Close Window
-                  </button>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                    {downloadBlobUrl && (
+                      <a 
+                        href={downloadBlobUrl} 
+                        download={`TCS_iON_CBT_Report_${state.sessionId || 'Practice'}.pdf`}
+                        className="cbt-btn cbt-btn-secondary"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', textDecoration: 'none' }}
+                      >
+                        📄 Save PDF File Directly
+                      </a>
+                    )}
+                    <button className="cbt-btn cbt-btn-primary" onClick={handleCloseReportModal} style={{ width: '100%' }}>
+                      Close Window
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -266,14 +266,25 @@ function examReducer(state, action) {
       };
     }
 
-    case 'UPDATE_TIMER':
+    case 'UPDATE_TIMER': {
+      const activeId = state.activeQuestionId;
+      const updatedQuestions = { ...state.questionsById };
+      if (activeId && updatedQuestions[activeId]) {
+        const currentQ = updatedQuestions[activeId];
+        updatedQuestions[activeId] = {
+          ...currentQ,
+          timeSpentSeconds: (currentQ.timeSpentSeconds || 0) + 1
+        };
+      }
       return {
         ...state,
+        questionsById: updatedQuestions,
         timer: {
           ...state.timer,
           remainingSeconds: Math.max(0, state.timer.remainingSeconds - 1)
         }
       };
+    }
 
     case 'EXPIRE_TIMER': {
       const summary = generateSummary(state);
