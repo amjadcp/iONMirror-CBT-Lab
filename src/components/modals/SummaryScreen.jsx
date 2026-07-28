@@ -114,7 +114,11 @@ export default function SummaryScreen({ onRestart }) {
       const blobUrl = URL.createObjectURL(pdfBlob);
       setDownloadBlobUrl(blobUrl);
 
-      // 2. Transmit to Netlify serverless function sendReport.js
+      const answeredCount = (summary.answered || 0) + (summary.answeredMarked || 0);
+      const unattemptedCount = summary.total ? (summary.total - answeredCount) : 0;
+      const accuracyPercentage = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+
+      // 2. Transmit to Netlify serverless function sendReport.js with high-level log metrics
       await fetch('/.netlify/functions/sendReport', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +126,17 @@ export default function SummaryScreen({ onRestart }) {
           email: email.trim(),
           sessionId: state.sessionId,
           pdfBase64,
-          summary: state.submission?.summary
+          summary: state.submission?.summary,
+          metrics: {
+            finalScore: totalScore,
+            maxMarks: maxPossibleScore,
+            totalQuestions: summary.total || questionsList.length,
+            answeredQuestions: answeredCount,
+            correctAnswers: correctCount,
+            wrongAttempts: wrongCount,
+            notAttempted: unattemptedCount,
+            overallAccuracy: `${accuracyPercentage}%`
+          }
         })
       });
     } catch (err) {
