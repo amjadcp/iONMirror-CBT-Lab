@@ -1,7 +1,7 @@
 /**
  * Netlify Serverless Function: sendReport.js
  * Receives the generated PDF report attachment, candidate email, and exam session summary.
- * Dispatches email using Resend, SendGrid, or Netlify Environment settings.
+ * Dispatches email exclusively using Sendinblue (Brevo) Transactional Email API.
  */
 
 export async function handler(event, context) {
@@ -32,7 +32,7 @@ export async function handler(event, context) {
 
   try {
     const payload = JSON.parse(event.body || '{}');
-    const { email, sessionId, pdfBase64, summary } = payload;
+    const { email, sessionId, pdfBase64 } = payload;
 
     if (!email || !email.includes('@')) {
       return {
@@ -44,112 +44,95 @@ export async function handler(event, context) {
 
     console.log(`[sendReport Serverless Function] Processing report email dispatch for candidate: ${email} (Session ID: ${sessionId || 'N/A'})`);
 
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const sendinblueApiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.SENDER_EMAIL || 'reports@ionmirror.com';
 
-    let emailDispatched = false;
-
-    // 1. Dispatch via Resend API if API Key is configured
-    if (resendApiKey) {
-      try {
-        const cleanBase64 = pdfBase64 ? pdfBase64.replace(/^data:application\/pdf;base64,/, '') : '';
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: 'TCS iON CBT Lab <reports@ionmirror.com>',
-            to: [email],
-            subject: 'Your Practice Exam Performance & Evaluation Report (TCS iON CBT)',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
-                <h2 style="color: #1e40af;">TCS iON CBT Practice Examination Report</h2>
-                <p>Hello,</p>
-                <p>Thank you for completing your CBT practice session. Attached to this email is your <strong>Detailed Multi-Page Performance Report</strong> including:</p>
-                <ul>
-                  <li>Overall Score & Metric Analysis (Accuracy, Correct, Wrong Attempts)</li>
-                  <li>Section-wise Attempt Breakdown</li>
-                  <li>Question-by-Question Detailed Evaluation & Answers</li>
-                  <li>Exact Time Spent on Each Question (in seconds/minutes)</li>
-                </ul>
-                <p>Keep practicing and good luck with your exam preparation!</p>
-                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                <p style="font-size: 12px; color: #64748b;">TCS iON CBT Practice Simulator Environment | Session: ${sessionId || 'N/A'}</p>
-              </div>
-            `,
-            attachments: cleanBase64 ? [
-              {
-                filename: `TCS_iON_CBT_Report_${sessionId || 'Session'}.pdf`,
-                content: cleanBase64
-              }
-            ] : []
-          })
-        });
-
-        if (resendResponse.ok) {
-          emailDispatched = true;
-          console.log(`[sendReport] Email successfully dispatched via Resend API to ${email}`);
-        } else {
-          const errText = await resendResponse.text();
-          console.error('[sendReport] Resend API error response:', errText);
-        }
-      } catch (err) {
-        console.error('[sendReport] Exception attempting Resend API:', err);
-      }
+    if (!sendinblueApiKey) {
+      console.warn('[sendReport] SENDINBLUE_API_KEY / BREVO_API_KEY is not configured in Netlify environment variables.');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          dispatched: false,
+          message: `Performance report generated for ${email}. (Email provider API key pending setup in Netlify)`
+        })
+      };
     }
 
-    // 2. Dispatch via SendGrid API if API Key is configured
-    if (!emailDispatched && sendgridApiKey) {
-      try {
-        const cleanBase64 = pdfBase64 ? pdfBase64.replace(/^data:application\/pdf;base64,/, '') : '';
-        const sendgridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${sendgridApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            personalizations: [{ to: [{ email }] }],
-            from: { email: 'reports@ionmirror.com', name: 'TCS iON CBT Lab' },
-            subject: 'Your Practice Exam Performance & Evaluation Report (TCS iON CBT)',
-            content: [{
-              type: 'text/html',
-              value: `<p>Please find attached your detailed performance report and complete question solutions for session ${sessionId || ''}.</p>`
-            }],
-            attachments: cleanBase64 ? [{
-              content: cleanBase64,
-              filename: `TCS_iON_CBT_Report_${sessionId || 'Session'}.pdf`,
-              type: 'application/pdf',
-              disposition: 'attachment'
-            }] : []
-          })
-        });
-
-        if (sendgridResponse.ok) {
-          emailDispatched = true;
-          console.log(`[sendReport] Email successfully dispatched via SendGrid API to ${email}`);
-        } else {
-          console.error('[sendReport] SendGrid error response status:', sendgridResponse.status);
-        }
-      } catch (err) {
-        console.error('[sendReport] Exception attempting SendGrid API:', err);
-      }
+    let cleanBase64 = '';
+    if (pdfBase64) {
+      cleanBase64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64;
+      cleanBase64 = cleanBase64.replace(/\s+/g, '');
     }
 
-    // 3. Fallback / Success Response
-    return {
-      statusCode: 200,
-      headers,
+    // Sendinblue (Brevo) v3 Transactional Email API
+    const sendinblueResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': sendinblueApiKey
+      },
       body: JSON.stringify({
-        success: true,
-        dispatched: emailDispatched,
-        message: emailDispatched 
-          ? `Performance report successfully emailed to ${email}.`
-          : `Performance report generated and scheduled for dispatch to ${email}.`
+        sender: {
+          name: 'iON Mirror CBT Lab',
+          email: senderEmail
+        },
+        to: [
+          {
+            email: email
+          }
+        ],
+        subject: 'Your Practice Exam Performance & Evaluation Report (iON Mirror CBT)',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6;">
+            <h2 style="color: #1e40af; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">iON Mirror CBT Practice Examination Report</h2>
+            <p>Hello,</p>
+            <p>Thank you for completing your CBT practice session. Attached to this email is your <strong>Detailed Multi-Page Performance Report</strong> including:</p>
+            <ul style="background: #f8fafc; padding: 15px 25px; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <li>Overall Score & Metric Analysis (Accuracy, Correct, Wrong Attempts)</li>
+              <li>Detailed Section-wise Attempt Breakdown & Time Metrics</li>
+              <li>Question-by-Question Detailed Evaluation & Explanations</li>
+              <li>Exact Time Spent on Each Question (in seconds/minutes)</li>
+            </ul>
+            <p>Keep practicing and good luck with your exam preparation!</p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #64748b;">iON Mirror CBT Practice Simulator Environment | Session: ${sessionId || 'N/A'}</p>
+          </div>
+        `,
+        attachment: cleanBase64 ? [
+          {
+            content: cleanBase64,
+            name: `iON_Mirror_CBT_Report_${sessionId || 'Session'}.pdf`
+          }
+        ] : []
       })
-    };
+    });
+
+    if (sendinblueResponse.ok) {
+      console.log(`[sendReport] Email successfully dispatched via Sendinblue API to ${email}`);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          dispatched: true,
+          message: `Performance report successfully emailed to ${email}.`
+        })
+      };
+    } else {
+      const errText = await sendinblueResponse.text();
+      console.error('[sendReport] Sendinblue API error response:', errText);
+      return {
+        statusCode: sendinblueResponse.status || 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to send email via Sendinblue',
+          details: errText
+        })
+      };
+    }
   } catch (error) {
     console.error('[sendReport] Serverless function error:', error);
     return {

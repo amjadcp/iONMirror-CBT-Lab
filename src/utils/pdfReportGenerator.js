@@ -591,8 +591,9 @@ export async function generatePDFReport({ state, candidateEmail }) {
     doc.text(`iON Mirror CBT Lab Practice Session Report - Page ${i} of ${totalPages}`, 14, pageHeight - 10);
   }
 
-  // Return base64 data URI string and blob
-  const pdfBase64 = doc.output('datauristring');
+  // Return clean base64 string and blob
+  const dataUri = doc.output('datauristring');
+  const pdfBase64 = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
   const pdfBlob = doc.output('blob');
 
   return {

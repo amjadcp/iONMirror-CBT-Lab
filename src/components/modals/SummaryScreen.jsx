@@ -74,7 +74,7 @@ export default function SummaryScreen({ onRestart }) {
   });
 
   const handleOpenReportModal = async () => {
-    const isDev = import.meta.env.DEV || import.meta.env.VITE_ENV === 'dev';
+    const isDev = import.meta.env.VITE_ENV === 'dev';
     if (isDev) {
       // In DEV environment: generate & download PDF file directly in browser
       try {
@@ -110,7 +110,7 @@ export default function SummaryScreen({ onRestart }) {
 
     try {
       // 1. Generate multi-page PDF on frontend
-      const { pdfBase64, pdfBlob } = generatePDFReport({ state, candidateEmail: email.trim() });
+      const { pdfBase64, pdfBlob } = await generatePDFReport({ state, candidateEmail: email.trim() });
       const blobUrl = URL.createObjectURL(pdfBlob);
       setDownloadBlobUrl(blobUrl);
 
@@ -349,7 +349,7 @@ export default function SummaryScreen({ onRestart }) {
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                    {downloadBlobUrl && (
+                    {/* {downloadBlobUrl && (
                       <a 
                         href={downloadBlobUrl} 
                         download={`TCS_iON_CBT_Report_${state.sessionId || 'Practice'}.pdf`}
@@ -358,7 +358,7 @@ export default function SummaryScreen({ onRestart }) {
                       >
                         📄 Save PDF File Directly
                       </a>
-                    )}
+                    )} */}
                     <button className="cbt-btn cbt-btn-primary" onClick={handleCloseReportModal} style={{ width: '100%' }}>
                       Close Window
                     </button>
