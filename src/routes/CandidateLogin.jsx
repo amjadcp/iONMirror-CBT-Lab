@@ -9,8 +9,10 @@ export default function CandidateLogin() {
   const timeQuery = searchParams.get('time');
   
   const [candidateId, setCandidateId] = useState('');
-  const [password, setPassword] = useState('••••••••');
+  const [password, setPassword] = useState('');
+  const [requiredPassword, setRequiredPassword] = useState('');
   const [examTime, setExamTime] = useState(timeQuery ? parseInt(timeQuery, 10) : 10);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (timeQuery) {
@@ -25,14 +27,21 @@ export default function CandidateLogin() {
     }
   }, [sessionId]);
 
-  // Generate a random candidate ID on mount
+  // Generate random candidate ID and random numeric system password (e.g. 4-digit number)
   useEffect(() => {
     const randomId = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
     setCandidateId(randomId);
+    setRequiredPassword(randomPin);
   }, []);
 
   const handleSignIn = (e) => {
     e.preventDefault();
+    if (password.trim() !== requiredPassword) {
+      setErrorMessage(`Invalid Password! Please enter the system password (${requiredPassword}) displayed on screen.`);
+      return;
+    }
+    setErrorMessage('');
     navigate(`/session/${sessionId}?time=${examTime}`);
   };
 
@@ -54,7 +63,7 @@ export default function CandidateLogin() {
 
       {/* Main Login Card */}
       <div className="login-card-container">
-        <form onSubmit={handleSignIn} className="login-card">
+        <form onSubmit={handleSignIn} className="login-card" autoComplete="off">
           <div className="login-card-header">
             <h3>Login Details</h3>
           </div>
@@ -62,11 +71,28 @@ export default function CandidateLogin() {
           <div className="login-card-body">
             {/* Left side: Inputs & Keyboard */}
             <div className="login-body-left">
+              {errorMessage && (
+                <div style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fca5a5',
+                  color: '#991b1b',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  marginBottom: '15px',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}>
+                  ⚠️ {errorMessage}
+                </div>
+              )}
+
               <div className="login-input-group">
                 <label htmlFor="userId">Candidate ID</label>
                 <input 
                   type="text" 
                   id="userId" 
+                  name="cbt_user_id"
+                  autoComplete="off"
                   value={candidateId} 
                   onChange={(e) => setCandidateId(e.target.value)} 
                   required
@@ -74,13 +100,22 @@ export default function CandidateLogin() {
               </div>
 
               <div className="login-input-group">
-                <label htmlFor="password">Password</label>
+                <label htmlFor="password">
+                  Password <span style={{ color: '#0284c7', fontSize: '12px', fontWeight: 'bold' }}>(System Password: {requiredPassword})</span>
+                </label>
                 <div className="login-pwd-wrapper">
                   <input 
-                    type="password" 
+                    type="text" 
                     id="password" 
+                    name="cbt_candidate_pin"
+                    autoComplete="off"
+                    style={{ WebkitTextSecurity: 'disc' }}
                     value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrorMessage('');
+                    }}
+                    placeholder="Enter password"
                     required
                   />
                   <span className="login-kbd-icon" title="Virtual Keyboard Active">⌨️</span>
@@ -109,9 +144,10 @@ export default function CandidateLogin() {
                       type="button" 
                       className={`login-kbd-key ${key.length > 1 ? 'large' : ''}`}
                       onClick={() => {
+                        setErrorMessage('');
                         if (key === 'Clear') setPassword('');
                         else if (key === 'Del') setPassword(p => p.slice(0, -1));
-                        else setPassword(p => (p === '••••••••' ? key : p + key));
+                        else setPassword(p => p + key);
                       }}
                     >
                       {key}
@@ -134,7 +170,25 @@ export default function CandidateLogin() {
                 <span className="name">Demo Candidate</span>
               </div>
               <div className="login-instructions">
-                <p>Please verify your name and picture. Enter your credentials or use the virtual keyboard to sign in to your test console.</p>
+                <p style={{ marginBottom: '8px' }}>Please verify your name and picture.</p>
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: '6px',
+                  padding: '10px 12px',
+                  marginTop: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
+                    🔑 SYSTEM LOGIN PASSWORD
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '4px', fontFamily: 'monospace' }}>
+                    {requiredPassword || '1234'}
+                  </div>
+                </div>
+                <p style={{ marginTop: '10px', fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
+                  Enter the password shown above using your physical keyboard or virtual keyboard to sign in.
+                </p>
               </div>
             </div>
           </div>

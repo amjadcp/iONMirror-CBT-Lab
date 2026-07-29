@@ -125,7 +125,7 @@ export default function MockTestSelection() {
                     handleSelectMockTest(test);
                   }}
                 >
-                  {test.fileName || `${test.title} | ${test.questionsCount} Questions | ${test.durationMins} mins.`}
+                  {test.fileName ? test.fileName.replace(/\.[^/.]+$/, '') : `${test.title} | ${test.questionsCount} Questions | ${test.durationMins} mins.`}
                 </a>
               </li>
             ))}
