@@ -27,6 +27,38 @@ export default function CandidateLogin() {
     }
   }, [sessionId]);
 
+  // Function to enter fullscreen mode (F11)
+  const requestFullscreenMode = () => {
+    if (!document.fullscreenElement) {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+  };
+
+  // Automatically request Fullscreen mode when Candidate Login opens
+  useEffect(() => {
+    requestFullscreenMode();
+
+    // Browser security policy requires user gesture; add listener to trigger fullscreen on first interaction
+    const handleUserInteraction = () => {
+      requestFullscreenMode();
+    };
+
+    window.addEventListener('click', handleUserInteraction);
+    window.addEventListener('keydown', handleUserInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, []);
+
   // Generate random candidate ID and random numeric system password (e.g. 4-digit number)
   useEffect(() => {
     const randomId = Math.floor(10000000 + Math.random() * 90000000).toString();
