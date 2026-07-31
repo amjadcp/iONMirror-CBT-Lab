@@ -190,14 +190,6 @@ function ExamSessionContent() {
   return (
     <div className="cbt-exam-full-width-container">
       {/* Main restrictive TCS iON style exam window */}
-      {state.newQuestionsArrived && (
-        <div className="cbt-arrived-alert">
-          <span className="alert-text">
-            🚀 Questions successfully added to your session based on settings!
-          </span>
-          <button className="alert-close" onClick={clearAlert}>×</button>
-        </div>
-      )}
 
       <div className="cbt-exam-wrapper">
         <HeaderBar />

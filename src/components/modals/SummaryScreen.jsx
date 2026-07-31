@@ -118,6 +118,8 @@ export default function SummaryScreen({ onRestart }) {
       const unattemptedCount = summary.total ? (summary.total - answeredCount) : 0;
       const accuracyPercentage = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
 
+      const examName = sessionStorage.getItem(`ion_exam_name_${state.sessionId}`) || state.currentSection || 'Mock Test';
+
       // 2. Transmit to Netlify serverless function sendReport.js with high-level log metrics
       await fetch('/.netlify/functions/sendReport', {
         method: 'POST',
@@ -125,6 +127,7 @@ export default function SummaryScreen({ onRestart }) {
         body: JSON.stringify({
           email: email.trim(),
           sessionId: state.sessionId,
+          examName,
           pdfBase64,
           summary: state.submission?.summary,
           metrics: {
@@ -358,9 +361,22 @@ export default function SummaryScreen({ onRestart }) {
                 <div style={{ textAlign: 'center', padding: '12px 0' }}>
                   <div style={{ fontSize: '36px', marginBottom: '10px' }}>✅</div>
                   <h4 style={{ margin: '0 0 8px 0', color: '#15803d', fontSize: '16px' }}>Report Generated & Dispatched!</h4>
-                  <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '20px' }}>
+                  <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '14px' }}>
                     Your detailed evaluation report and complete answer key have been dispatched to <strong>{email}</strong>.
                   </p>
+
+                  <div style={{
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: '6px',
+                    padding: '10px 14px',
+                    marginBottom: '20px',
+                    fontSize: '13px',
+                    color: '#92400e',
+                    textAlign: 'center'
+                  }}>
+                    📩 <strong>Note:</strong> If you don't see the email in your inbox within a few minutes, please <strong>check your Spam / Junk folder</strong>.
+                  </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     {/* {downloadBlobUrl && (

@@ -74,6 +74,9 @@ export default function MockTestSelection() {
 
     const durationMins = (metadata && metadata.durationMins) || test.durationMins || 10;
 
+    const examName = test.fileName || test.title || 'Mock Test';
+    sessionStorage.setItem(`ion_exam_name_${sessionId}`, examName);
+
     // Store in browser sessionStorage (No Netlify Blob API call!)
     sessionStorage.setItem(`ion_client_questions_${sessionId}`, JSON.stringify(parsedQuestions));
 

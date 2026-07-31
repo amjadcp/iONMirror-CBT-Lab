@@ -1,24 +1,4 @@
-/**
- * Netlify Serverless Function: sendReport.js
- * 1. Stores each report request in Netlify's DB (@netlify/blobs store 'report_requests') as a single log entry table row with entry timestamp and metrics.
- * 2. Dispatches email exclusively using Sendinblue (Brevo) Transactional Email API.
- */
-
-import { getStore } from '@netlify/blobs';
-
-/**
- * Safely initializes Netlify Blobs store with fallback for local dev / unconfigured environments
- */
-function getReportStore() {
-  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
-  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_API_TOKEN;
-
-  if (siteID && token) {
-    return getStore({ name: 'report_requests', siteID, token });
-  }
-
-  return getStore('report_requests');
-}
+import { getNeonSql } from './_lib/neondb.js';
 
 export async function handler(event, context) {
   // CORS Headers
@@ -48,7 +28,7 @@ export async function handler(event, context) {
 
   try {
     const payload = JSON.parse(event.body || '{}');
-    const { email, sessionId, pdfBase64, metrics } = payload;
+    const { email, sessionId, examName, pdfBase64, metrics } = payload;
 
     if (!email || !email.includes('@')) {
       return {
@@ -58,44 +38,35 @@ export async function handler(event, context) {
       };
     }
 
-    console.log(`[sendReport Serverless Function] Processing report request for candidate: ${email} (Session ID: ${sessionId || 'N/A'})`);
+    console.log(`[sendReport Serverless Function] Processing report request for candidate: ${email} (Exam: ${examName || 'N/A'}, Session ID: ${sessionId || 'N/A'})`);
 
     const entryTimestamp = new Date().toISOString();
     const uniqueEntryId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    // Structure log row record containing entry timestamp and high-level report metrics
-    const reportLogRow = {
-      id: uniqueEntryId,
-      timestamp: entryTimestamp,
-      candidateEmail: email,
-      sessionId: sessionId || 'sess_practice',
-      finalScore: metrics?.finalScore ?? 0,
-      maxMarks: metrics?.maxMarks ?? 0,
-      totalQuestions: metrics?.totalQuestions ?? 0,
-      answeredQuestions: metrics?.answeredQuestions ?? 0,
-      correctAnswers: metrics?.correctAnswers ?? 0,
-      wrongAttempts: metrics?.wrongAttempts ?? 0,
-      notAttempted: metrics?.notAttempted ?? 0,
-      overallAccuracy: metrics?.overallAccuracy ?? '0%'
-    };
-
-    // 1. STORE IN NETLIFY'S DB (@netlify/blobs store 'report_requests')
+    // 1. STORE IN NEON DB (table: report_logs)
+    let neonLogged = false;
     try {
-      const dbStore = getReportStore();
-      await dbStore.setJSON(uniqueEntryId, reportLogRow);
-
-      // Append entry to master table log index 'all_report_logs'
-      let masterLogTable = await dbStore.get('all_report_logs', { type: 'json' });
-      if (!Array.isArray(masterLogTable)) {
-        masterLogTable = [];
+      const sql = getNeonSql();
+      if (sql) {
+        await sql`
+          INSERT INTO report_logs (
+            id, timestamp, candidate_email, session_id, exam_name,
+            final_score, max_marks, total_questions, answered_questions,
+            correct_answers, wrong_attempts, not_attempted, overall_accuracy
+          ) VALUES (
+            ${uniqueEntryId}, ${entryTimestamp}, ${email}, ${sessionId || 'sess_practice'}, ${examName || 'Mock Test'},
+            ${metrics?.finalScore ?? 0}, ${metrics?.maxMarks ?? 0}, ${metrics?.totalQuestions ?? 0},
+            ${metrics?.answeredQuestions ?? 0}, ${metrics?.correctAnswers ?? 0}, ${metrics?.wrongAttempts ?? 0},
+            ${metrics?.notAttempted ?? 0}, ${metrics?.overallAccuracy ?? '0%'}
+          )
+        `;
+        neonLogged = true;
+        console.log(`[Neon DB Log] Successfully recorded log row entry for ${email} at ${entryTimestamp}`);
+      } else {
+        console.warn(`[Neon DB Log Notice] NEON_DATABASE_URL environment variable is pending configuration.`);
       }
-      masterLogTable.unshift(reportLogRow);
-      await dbStore.setJSON('all_report_logs', masterLogTable);
-
-      console.log(`[Netlify DB Log] Successfully recorded row entry for ${email} at ${entryTimestamp}`);
     } catch (dbErr) {
-      console.warn(`[Netlify DB Log Notice] DB store notice (${dbErr.name}): ${dbErr.message}`);
-      console.log(`[Netlify DB Local Log Entry] Recorded locally for candidate ${email} (Session ID: ${sessionId || 'N/A'}) at ${entryTimestamp}`);
+      console.error(`[Neon DB Log Error]: ${dbErr.message}`);
     }
 
     // 2. DISPATCH VIA SENDINBLUE (BREVO) REST API
