@@ -5,6 +5,9 @@ import { trackEvent } from '../utils/analytics';
 import { parseQuestionsFromRaw } from '../utils/questionParser';
 import { fetchGitHubMockTests } from '../utils/githubService';
 
+// Flag to control visibility of AI Question Generator popup (set to true to re-enable)
+const SHOW_AI_POPUP = false;
+
 export default function MockTestSelection() {
   const navigate = useNavigate();
   const [githubTests, setGithubTests] = useState([]);
@@ -103,7 +106,7 @@ export default function MockTestSelection() {
           </button>
           <h1>Computer-Based Test (CBT) Practice Catalog</h1>
           <p className="mock-header-desc">
-            Select a practice test set below or use the AI Generator to create custom mock exams under TCS iON rules.
+            Select a practice test set below to start your practice session under TCS iON rules.
           </p>
         </div>
       </header>
@@ -136,40 +139,42 @@ export default function MockTestSelection() {
         )}
       </main>
 
-      {/* Floating Bottom-Right AI Question Generator Overlay Popup */}
-      {showAiPopup ? (
-        <div className="ai-floating-popup">
-          <button 
-            className="ai-popup-close-btn" 
-            onClick={handleClosePopup}
-            title="Close popup"
-            aria-label="Close popup"
-          >
-            ×
-          </button>
-          <div className="ai-popup-header">
-            <span className="ai-popup-icon">🤖</span>
-            <span className="ai-popup-title">AI Question Generator</span>
+      {/* Floating Bottom-Right AI Question Generator Overlay Popup (Hidden via SHOW_AI_POPUP flag) */}
+      {SHOW_AI_POPUP && (
+        showAiPopup ? (
+          <div className="ai-floating-popup">
+            <button 
+              className="ai-popup-close-btn" 
+              onClick={handleClosePopup}
+              title="Close popup"
+              aria-label="Close popup"
+            >
+              ×
+            </button>
+            <div className="ai-popup-header">
+              <span className="ai-popup-icon">🤖</span>
+              <span className="ai-popup-title">AI Question Generator</span>
+            </div>
+            <p className="ai-popup-desc">
+              Want custom questions for a specific exam or syllabus? Generate unlimited mock tests with AI.
+            </p>
+            <button 
+              className="cbt-btn cbt-btn-primary ai-popup-btn" 
+              onClick={handleGenerateWithAI}
+            >
+              Generate Custom Test with AI →
+            </button>
           </div>
-          <p className="ai-popup-desc">
-            Want custom questions for a specific exam or syllabus? Generate unlimited mock tests with AI.
-          </p>
+        ) : (
           <button 
-            className="cbt-btn cbt-btn-primary ai-popup-btn" 
-            onClick={handleGenerateWithAI}
+            className="ai-circle-trigger-btn" 
+            onClick={handleOpenPopup}
+            title="Open AI Question Generator"
+            aria-label="Open AI Question Generator"
           >
-            Generate Custom Test with AI →
+            🤖
           </button>
-        </div>
-      ) : (
-        <button 
-          className="ai-circle-trigger-btn" 
-          onClick={handleOpenPopup}
-          title="Open AI Question Generator"
-          aria-label="Open AI Question Generator"
-        >
-          🤖
-        </button>
+        )
       )}
     </div>
   );
