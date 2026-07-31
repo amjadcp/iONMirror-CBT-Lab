@@ -29,6 +29,10 @@ export default function CandidateLogin() {
 
   // Function to enter fullscreen mode (F11)
   const requestFullscreenMode = () => {
+    // If running in development environment, skip entering fullscreen mode
+    const isDev = import.meta.env.VITE_ENV === 'dev';
+    if (isDev) return;
+
     if (!document.fullscreenElement) {
       const elem = document.documentElement;
       if (elem.requestFullscreen) {
@@ -41,8 +45,12 @@ export default function CandidateLogin() {
     }
   };
 
-  // Automatically request Fullscreen mode when Candidate Login opens
+  const IS_DEV = import.meta.env.VITE_ENV === 'dev';
+
+  // Automatically request Fullscreen mode when Candidate Login opens (production only)
   useEffect(() => {
+    if (IS_DEV) return;
+
     requestFullscreenMode();
 
     // Browser security policy requires user gesture; add listener to trigger fullscreen on first interaction
@@ -57,7 +65,7 @@ export default function CandidateLogin() {
       window.removeEventListener('click', handleUserInteraction);
       window.removeEventListener('keydown', handleUserInteraction);
     };
-  }, []);
+  }, [IS_DEV]);
 
   // Generate random candidate ID and random numeric system password (e.g. 4-digit number)
   useEffect(() => {
@@ -65,7 +73,12 @@ export default function CandidateLogin() {
     const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
     setCandidateId(randomId);
     setRequiredPassword(randomPin);
-  }, []);
+
+    // Autofill password automatically in dev environment for quick testing
+    if (IS_DEV) {
+      setPassword(randomPin);
+    }
+  }, [IS_DEV]);
 
   const handleSignIn = (e) => {
     e.preventDefault();

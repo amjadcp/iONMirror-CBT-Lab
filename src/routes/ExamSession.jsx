@@ -50,8 +50,11 @@ function ExamSessionContent() {
     }
   }, [state.submission.submitted, sessionId]);
 
-  // Detect reload/refresh on mount
+  const IS_DEV = import.meta.env.VITE_ENV === 'dev';
+
+  // Detect reload/refresh on mount (bypassed in dev mode)
   useEffect(() => {
+    if (IS_DEV) return;
     const isExamActive = sessionStorage.getItem(`ion_exam_active_${sessionId}`) === 'true';
     const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${sessionId}`) === 'true';
 
@@ -70,10 +73,11 @@ function ExamSessionContent() {
         sessionStorage.setItem(`ion_exam_terminated_${sessionId}`, 'true');
       }
     }
-  }, [sessionId]);
+  }, [sessionId, IS_DEV]);
 
-  // Prevent refresh/unload browser warning
+  // Prevent refresh/unload browser warning (bypassed in dev mode)
   useEffect(() => {
+    if (IS_DEV) return;
     const handleBeforeUnload = (e) => {
       const isExamActive = sessionStorage.getItem(`ion_exam_active_${sessionId}`) === 'true';
       const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${sessionId}`) === 'true';
@@ -85,10 +89,11 @@ function ExamSessionContent() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [sessionId]);
+  }, [sessionId, IS_DEV]);
 
-  // Listen to tab and window switching (blur/visibilitychange)
+  // Listen to tab and window switching (blur/visibilitychange) (bypassed in dev mode)
   useEffect(() => {
+    if (IS_DEV) return;
     const triggerWarning = (reason) => {
       const isExamActive = sessionStorage.getItem(`ion_exam_active_${sessionId}`) === 'true';
       const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${sessionId}`) === 'true';
@@ -134,13 +139,13 @@ function ExamSessionContent() {
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [sessionId, state.submission.submitted, dispatch]);
+  }, [sessionId, state.submission.submitted, dispatch, IS_DEV]);
 
   // Auto-start or auto-terminate timer on question arrival
   useEffect(() => {
     const hasQuestions = Object.keys(state.questionsById).length > 0;
     if (hasQuestions) {
-      const isTerminated = sessionStorage.getItem(`ion_exam_terminated_${sessionId}`) === 'true';
+      const isTerminated = !IS_DEV && sessionStorage.getItem(`ion_exam_terminated_${sessionId}`) === 'true';
       if (isTerminated) {
         if (!state.submission.submitted) {
           dispatch({ type: 'SUBMIT_EXAM' });
@@ -156,7 +161,7 @@ function ExamSessionContent() {
         }
       }
     }
-  }, [state.questionsById, state.timer.isRunning, state.timer.isExpired, state.submission.submitted, sessionId, dispatch]);
+  }, [state.questionsById, state.timer.isRunning, state.timer.isExpired, state.submission.submitted, sessionId, dispatch, IS_DEV]);
 
   const handleConfirmSubmit = () => {
     setIsSubmitModalOpen(false);

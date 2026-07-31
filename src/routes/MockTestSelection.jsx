@@ -110,7 +110,7 @@ export default function MockTestSelection() {
         {loading ? (
           <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--cbt-steel-blue)' }}>
             <div className="cbt-loading-spinner" style={{ margin: '0 auto 15px' }}></div>
-            <p>Fetching practice test papers from GitHub repository...</p>
+            <p>Fetching practice test papers...</p>
           </div>
         ) : (
           /* Mock Tests Hyperlink Bulleted List */

@@ -1,11 +1,40 @@
 import { parseMockTestFilename } from './questionParser';
 
+const IS_LOCAL = import.meta.env.VITE_ENV === 'dev'
+const LOCAL_MOCKS_API = '/dev-local-mocks';
 const GITHUB_REPO_API = 'https://api.github.com/repos/amjadcp/iONMirror-Mocks/contents';
 
 /**
- * Fetch the live list of all mock test files directly from the GitHub repository: amjadcp/iONMirror-Mocks
+ * Fetch the live list of mock test files.
+ * Uses local /projects/iONMirror-Mocks folder in development mode (localhost),
+ * and live GitHub repository (amjadcp/iONMirror-Mocks) in production mode.
  */
 export async function fetchGitHubMockTests() {
+  if (IS_LOCAL) {
+    try {
+      const res = await fetch(LOCAL_MOCKS_API);
+      if (!res.ok) {
+        throw new Error(`Local mock server error: ${res.statusText}`);
+      }
+      const files = await res.json();
+      return files.map(file => {
+        const meta = parseMockTestFilename(file.name);
+        return {
+          id: file.name,
+          fileName: file.name,
+          title: meta.title,
+          questionsCount: meta.questionsCount || 10,
+          durationMins: meta.durationMins || 10,
+          downloadUrl: file.download_url
+        };
+      });
+    } catch (localErr) {
+      console.error('Error fetching local mock tests from /projects/iONMirror-Mocks:', localErr);
+      return [];
+    }
+  }
+
+  // Production ONLY (Deployed build): Fetch directly from GitHub repository API
   try {
     const res = await fetch(GITHUB_REPO_API);
     if (!res.ok) {
@@ -33,3 +62,5 @@ export async function fetchGitHubMockTests() {
     return [];
   }
 }
+
+
