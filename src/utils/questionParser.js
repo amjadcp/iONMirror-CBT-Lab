@@ -88,133 +88,253 @@ export function parseQuestionsFromRaw(input) {
   return { metadata: null, questions: [] };
 }
 
+function parseSectionHeader(line) {
+  const trimmed = line.trim();
+  // Heading must explicitly start with Section or Part (e.g. "## Section: General Awareness", "## Part A: English")
+  const match = trimmed.match(/^#+\s*(?:Section|Part)\b\s*:?\s*(.*)/i);
+  if (match) {
+    const secText = match[1].trim();
+    return secText || trimmed.replace(/^#+\s*/, '');
+  }
+  return null;
+}
+
+function parseQuestionHeader(line) {
+  const trimmed = line.trim();
+
+  // Pattern 1: Starts with markdown heading (#, ##, ###, ####) + Question label or number
+  // e.g., "#### Q1. ...", "### Question 1: ...", "## 1. ...", "# Q.1 ..."
+  const headingMatch = trimmed.match(/^#+\s*(?:Q(?:uestion|\.)?\s*\d+|\d+)[\.\):\-\s]*(.*)/i);
+  if (headingMatch) {
+    return { isHeader: true, rest: headingMatch[1].trim() };
+  }
+
+  // Pattern 2: Starts with explicit Question keyword (Q1., Q1), Q.1., Question 1:, Q1 -, Q1:)
+  // e.g., "Q1. ...", "Q1) ...", "Q.1. ...", "Q.1 ...", "Question 1: ...", "Q1: ...", "Q1 - ..."
+  const qKeywordMatch = trimmed.match(/^(?:Q(?:uestion|\.)?\s*\d+)[\.\):\-\s]*(.*)/i);
+  if (qKeywordMatch) {
+    return { isHeader: true, rest: qKeywordMatch[1].trim() };
+  }
+
+  // Pattern 3: Starts with standalone number followed by dot/paren/colon at start of line
+  // e.g., "1. ...", "1) ...", "1: ..." (up to 3 digits)
+  const numMatch = trimmed.match(/^(\d{1,3})[\.\):\)]\s+(.*)/);
+  if (numMatch) {
+    return { isHeader: true, rest: numMatch[2].trim() };
+  }
+
+  return { isHeader: false, rest: '' };
+}
+
 /**
  * Parse a raw Markdown/TXT text document into structured question objects.
+ * Handles complex passage questions, sentence rearrangement sets (A., B., C., D., E. in stem),
+ * bulleted options (- (A) B), standard options (A. text), answer keys, and explanations.
  */
 function parseMarkdownText(text) {
+  if (!text) return { metadata: null, questions: [] };
+
   const lines = text.split(/\r?\n/);
   let currentSection = 'General Section';
   let metadata = null;
   const questions = [];
 
-  let currentQuestion = null;
+  // Step 1: Extract document title metadata if present at top
+  const nonBlankLines = lines.map(l => l.trim()).filter(Boolean);
+  if (nonBlankLines.length > 0) {
+    const firstLine = nonBlankLines[0];
+    if (firstLine.startsWith('# ') && !firstLine.match(/^#\s*(?:Q(?:uestion|\.)?\s*\d+|\d+)/i)) {
+      metadata = parseMockTestFilename(firstLine.replace(/^#\s+/, ''));
+    } else if (firstLine.toLowerCase().startsWith('filename:')) {
+      metadata = parseMockTestFilename(firstLine.replace(/^filename:\s*/i, ''));
+    }
+  }
+
+  // Step 2: Split content into raw question blocks
+  const blocks = [];
+  let currentBlock = null;
 
   lines.forEach((line) => {
     const trimmed = line.trim();
     if (!trimmed) return;
 
-    // Check for title metadata line: # AFCAT 2026... | 10 Questions | 10 mins or FILENAME:...
-    if (trimmed.startsWith('# ')) {
-      const headerText = trimmed.replace(/^#\s+/, '');
-      metadata = parseMockTestFilename(headerText);
-      return;
-    }
-
-    if (trimmed.toLowerCase().startsWith('filename:')) {
-      const fnText = trimmed.replace(/^filename:\s*/i, '');
-      metadata = parseMockTestFilename(fnText);
-      return;
-    }
-
-    // Check for new Question header FIRST: #### Q1. or Q1) or 1.
-    const qHeaderMatch = trimmed.match(/^(?:####\s*)?(?:Q\d+[\.\)]|\d+[\.\)])\s*(.+)/i);
-    if (qHeaderMatch) {
-      if (currentQuestion && currentQuestion.options.length >= 2) {
-        questions.push(finalizeQuestion(currentQuestion));
+    // Check for explicit Section header: ## Section: Verbal Ability or # Section 1
+    const newSec = parseSectionHeader(trimmed);
+    if (newSec) {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+        currentBlock = null;
       }
+      currentSection = newSec;
+      return;
+    }
 
-      const qText = qHeaderMatch[1].trim();
-      currentQuestion = {
-        id: `q_${questions.length + 1}_${Math.random().toString(36).substring(2, 6)}`,
+    // Check for Question header
+    const qHeader = parseQuestionHeader(trimmed);
+    if (qHeader.isHeader) {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+      }
+      currentBlock = {
         section: currentSection,
-        type: 'single',
-        stemMarkdown: qText,
-        options: [],
-        correctAnswer: null,
-        explanation: '',
-        marks: 3,
-        negativeMarks: 1
+        headerRest: qHeader.rest,
+        lines: []
       };
       return;
     }
 
-    // Check for section header: ### Section: General Awareness or ## Section Name
-    if (trimmed.startsWith('##')) {
-      const secText = trimmed.replace(/^#+\s*/, '').replace(/^Section:\s*/i, '').trim();
-      if (secText) {
-        currentSection = secText;
-      }
-      return;
-    }
-
-    if (!currentQuestion) return;
-
-    // Check for Option line: - (A) Option text or A) Option text or (A) Option text or A. Option text
-    const optMatch = trimmed.match(/^(?:[\-\*]\s*)?[\(\[]?([A-Da-d])[\)\]\.]?\s+(.+)/);
-    if (optMatch && !trimmed.toLowerCase().startsWith('answer:') && !trimmed.toLowerCase().startsWith('**answer')) {
-      const key = optMatch[1].toUpperCase();
-      const optText = optMatch[2].trim();
-      currentQuestion.options.push({
-        id: `opt_${key}_${Math.random().toString(36).substring(2, 6)}`,
-        key: key,
-        markdown: optText,
-        text: optText
-      });
-      return;
-    }
-
-    // Check for Answer key line: **Answer:** A or Answer: (A) or Answer: A
-    const ansMatch = trimmed.match(/^(?:\*\*)?Answer:?(?:\*\*)?\s*[\(\[]?([A-Da-d])[\)\]]?/i);
-    if (ansMatch) {
-      currentQuestion.correctAnswerKey = ansMatch[1].toUpperCase();
-      return;
-    }
-
-    // Check for Explanation line: **Explanation:** ... or Explanation: ...
-    const expMatch = trimmed.match(/^(?:\*\*)?Explanation:?(?:\*\*)?\s*(.+)/i);
-    if (expMatch) {
-      currentQuestion.explanation = expMatch[1].trim();
-      return;
-    }
-
-    // Append multi-line question text or explanation line if active
-    if (currentQuestion.options.length === 0) {
-      currentQuestion.stemMarkdown += '\n' + trimmed;
-    } else if (currentQuestion.explanation) {
-      currentQuestion.explanation += ' ' + trimmed;
+    if (currentBlock) {
+      currentBlock.lines.push(trimmed);
     }
   });
 
-  if (currentQuestion && currentQuestion.options.length >= 2) {
-    questions.push(finalizeQuestion(currentQuestion));
+  if (currentBlock) {
+    blocks.push(currentBlock);
   }
+
+  // Fallback: If no blocks were created (e.g. file has no Q1 headers), create a default block with all non-section lines
+  if (blocks.length === 0 && lines.some(l => l.trim())) {
+    currentBlock = {
+      section: currentSection,
+      headerRest: '',
+      lines: lines.map(l => l.trim()).filter(Boolean)
+    };
+    blocks.push(currentBlock);
+  }
+
+  // Step 3: Process each question block
+  blocks.forEach((block, index) => {
+    const qId = `q_${index + 1}_${Math.random().toString(36).substring(2, 6)}`;
+    let stemLines = [];
+    if (block.headerRest) {
+      stemLines.push(block.headerRest);
+    }
+
+    const rawLines = block.lines;
+    const options = [];
+    let rawAnswer = null;
+    let explanationLines = [];
+
+    // Check if the block has explicit bulleted/parenthesized options: "- (A)", "* (A)", "- A.", "(A)", "(B)"
+    const bulletOptRegex = /^(?:[\-\*]\s*)?[\(\[]([A-Da-d])[\)\]]\s*(.*)/;
+    const dashOptRegex = /^(?:[\-\*]\s*)([A-Da-d])[\.\)]\s*(.*)/;
+
+    const hasExplicitBulletedOptions = rawLines.some(l => bulletOptRegex.test(l) || dashOptRegex.test(l));
+
+    let inExplanation = false;
+
+    rawLines.forEach((l) => {
+      // Check for Answer line: **Answer:** A or Answer: (A)
+      const ansMatch = l.match(/^(?:\*\*)?Answer:?(?:\*\*)?\s*(.+)/i);
+      if (ansMatch) {
+        rawAnswer = ansMatch[1].trim();
+        inExplanation = false;
+        return;
+      }
+
+      // Check for Explanation line: **Explanation:** ...
+      const expMatch = l.match(/^(?:\*\*)?Explanation:?(?:\*\*)?\s*(.*)/i);
+      if (expMatch) {
+        if (expMatch[1].trim()) {
+          explanationLines.push(expMatch[1].trim());
+        }
+        inExplanation = true;
+        return;
+      }
+
+      if (inExplanation) {
+        explanationLines.push(l);
+        return;
+      }
+
+      // Check if line contains multiple inline options on a single line: "- (A) - (B) - (C) - (D)"
+      const multiOptMatches = [...l.matchAll(/(?:[\-\*]\s*)?[\(\[]([A-Da-d])[\)\]]\s*([^\-\*\(\)]*)/g)];
+      if (multiOptMatches.length >= 2) {
+        multiOptMatches.forEach(m => {
+          const key = m[1].toUpperCase();
+          const optText = m[2].trim() || `Option ${key}`;
+          options.push({
+            id: `opt_${key}_${Math.random().toString(36).substring(2, 6)}`,
+            key: key,
+            markdown: optText,
+            text: optText
+          });
+        });
+        return;
+      }
+
+      if (hasExplicitBulletedOptions) {
+        // High-priority matching: only lines starting with bulleted/parenthesized option markers are options
+        const bMatch = l.match(bulletOptRegex) || l.match(dashOptRegex);
+        if (bMatch) {
+          const key = bMatch[1].toUpperCase();
+          const optText = bMatch[2].trim() || `Option ${key}`;
+          options.push({
+            id: `opt_${key}_${Math.random().toString(36).substring(2, 6)}`,
+            key: key,
+            markdown: optText,
+            text: optText
+          });
+        } else {
+          // All other lines (including A., B., C., D., E. sentences in rearrangement questions) belong to the stem!
+          stemLines.push(l);
+        }
+      } else {
+        // Fallback matching for non-bulleted options (e.g., "A. Option text")
+        const stdMatch = l.match(/^(?:[\-\*]\s*)?[\(\[]?([A-Da-d])[\)\]\.]?\s+(.+)/);
+        if (stdMatch) {
+          const key = stdMatch[1].toUpperCase();
+          const optText = stdMatch[2].trim() || `Option ${key}`;
+          options.push({
+            id: `opt_${key}_${Math.random().toString(36).substring(2, 6)}`,
+            key: key,
+            markdown: optText,
+            text: optText
+          });
+        } else {
+          stemLines.push(l);
+        }
+      }
+    });
+
+    const stemMarkdown = stemLines.join('\n\n').trim();
+    const explanation = explanationLines.join(' ').trim();
+    const correctAnswer = resolveCorrectAnswerId(options, rawAnswer);
+
+    questions.push({
+      id: qId,
+      section: block.section || 'General Section',
+      type: 'single',
+      marks: 3,
+      negativeMarks: 1,
+      stemMarkdown: stemMarkdown || 'Question text',
+      options,
+      correctAnswer,
+      explanation
+    });
+  });
 
   return { metadata, questions };
 }
 
-function finalizeQuestion(q) {
-  // Resolve correctAnswer option ID if correctAnswerKey exists
-  let correctAnswer = null;
-  if (q.correctAnswerKey) {
-    const matchedOpt = q.options.find(o => o.key === q.correctAnswerKey);
-    if (matchedOpt) {
-      correctAnswer = matchedOpt.id;
-    } else {
-      correctAnswer = q.correctAnswerKey;
-    }
-  }
+function resolveCorrectAnswerId(options, answerStr) {
+  if (!answerStr || !Array.isArray(options) || options.length === 0) return null;
+  const cleanAns = answerStr.replace(/[\(\)\[\]\*]/g, '').trim().toUpperCase();
 
-  return {
-    id: q.id,
-    section: q.section,
-    type: q.type,
-    marks: q.marks,
-    negativeMarks: q.negativeMarks,
-    stemMarkdown: q.stemMarkdown,
-    options: q.options,
-    correctAnswer: correctAnswer,
-    explanation: q.explanation || ''
-  };
+  // 1. Try matching by option key (A, B, C, D)
+  const byKey = options.find(o => o.key && o.key.toUpperCase() === cleanAns);
+  if (byKey) return byKey.id;
+
+  // 2. Try matching by exact option text
+  const byText = options.find(o => o.text && o.text.trim().toUpperCase() === cleanAns);
+  if (byText) return byText.id;
+
+  // 3. Fallback to raw cleanAns
+  return cleanAns;
+}
+
+function finalizeQuestion(q) {
+  return q;
 }
 
 function normalizeQuestionObject(q, idx) {
